@@ -24,6 +24,10 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
+# Project data & model artifacts (spec: never commit these)
+data/
+models/
+
 # Environment / secrets
 .env
 .env.*
