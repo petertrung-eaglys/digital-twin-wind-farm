@@ -1,0 +1,42 @@
+year: 2022
+paths:
+  raw: data/raw
+  processed: data/processed
+  ontology: ontology/kelmarsh.ttl
+  models: models
+downloads:
+  scada_dir: scada_2022
+  files:
+    - name: Kelmarsh_WT_static.csv
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_WT_static.csv?download=1
+      md5: af3a038f0f7fddfc1608ad0bfc8cf5ba
+    - name: Kelmarsh_WT_dataSignalMapping.csv
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_WT_dataSignalMapping.csv?download=1
+      md5: ca8fe399ab15ae7111d3214c632efd36
+    - name: Kelmarsh_SCADA_2022_4457.zip
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2022_4457.zip?download=1
+      md5: b695d2b21cd5a236b2e690e0a43df5ab
+signals:
+  # Fill in exact column names after running inspect_data.py
+  wind_speed: "Wind speed (m/s)"
+  power: "Power (kW)"
+  wind_direction: "Wind direction (°)"
+  nacelle_direction: "Nacelle position (°)"
+  ambient_temp: "Ambient temperature (converter) (°C)"
+  pitch: "Blade angle (pitch position) A (°)"
+  rotor_speed: "Rotor speed (RPM)"
+sampling:
+  interval_minutes: 10
+cleaning:
+  min_wind_speed: 3.0
+  max_wind_speed: 25.0
+  max_pitch_deg: 5.0
+  min_power_kw: 0.0
+  rated_wind_speed: 12.0       # MM92 rated wind speed, used for the pitch rule
+  standard_pressure_pa: 101325.0
+train_test_split:
+  train_end: "2022-09-30 23:50"
+alerts:
+  window_samples: 144          # 24 hours of 10-minute data
+  threshold_fraction: -0.05    # mean residual below -5% of rated power
+  min_duration_samples: 36     # 6 hours
