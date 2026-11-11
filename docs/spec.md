@@ -351,3 +351,15 @@ Each target calls its script through uv, for example `uv run python -m src.downl
 - Extend to 2016 to 2024 and add grid meter reconciliation.
 - Add a PyWake farm model for wake losses.
 - Move the graph to a triple store and add SHACL validation.
+## 11. Change log
+
+### Milestone 1: scaffold
+
+- Initialised the uv project (`kelmarsh-twin`, Python 3.11 pinned) and added the
+  §4 dependencies plus `matplotlib` (power curve PNGs) and dev dependencies
+  `pytest` and `ruff`.
+- Added `config.yaml` with the §6 content plus `downloads` (URLs, MD5s),
+  `sampling.interval_minutes`, `cleaning.rated_wind_speed` and
+  `cleaning.standard_pressure_pa`, so scripts hold no hard-coded values.
+- Added `src/config.py` (`load_config`), the `Makefile` (§7.10 targets plus
+  `test` and `lint`), and `tests/test_config.py`.
