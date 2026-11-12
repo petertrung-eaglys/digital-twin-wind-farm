@@ -5,7 +5,7 @@ because data/ is not part of the repository.
 """
 
 import json
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -85,7 +85,7 @@ def test_ontology_tab_shows_lineage_and_schema_graphs() -> None:
         len(graphs),
         "digraph lineage" in graphs[0].proto.spec,
         "digraph schema" in graphs[1].proto.spec,
-    ) == (["Replay", "Ontology & lineage"], 2, True, True)
+    ) == (["Replay", "Overview", "Ontology & lineage"], 2, True, True)
 
 
 def test_sensor_filter_narrows_lineage() -> None:
@@ -102,4 +102,51 @@ def test_status_map_uses_configured_style() -> None:
 
     assert (
         status_map["layout"]["map"]["style"] == load_config()["dashboard"]["map_style"]
+    )
+
+
+def test_replay_opens_at_start_of_test_period() -> None:
+    app = run_app()
+
+    assert app.caption[0].value == "Replay time: 2022-01-01 00:00 UTC"
+
+
+def test_date_picker_moves_replay_and_keeps_time_of_day() -> None:
+    app = run_app()
+    app.session_state["replay_time"] = datetime(2022, 6, 1, 13, 20)
+    app.run()
+    app.date_input(key="replay_date").set_value(date(2023, 3, 1)).run()
+
+    assert (len(app.exception), app.caption[0].value) == (
+        0,
+        "Replay time: 2023-03-01 13:20 UTC",
+    )
+
+
+def test_speeds_include_a_day_and_a_week_per_tick() -> None:
+    app = run_app()
+
+    assert app.sidebar.radio[0].options[-2:] == ["1 day", "1 week"]
+
+
+def test_alerts_table_follows_replay_year_unless_unchecked() -> None:
+    app = run_app()
+    replay_year = len(app.dataframe[0].value)
+    app.sidebar.checkbox[0].uncheck().run()
+
+    assert (
+        app.subheader[1].value,
+        replay_year < len(app.dataframe[0].value),
+    ) == ("Alerts 2016–2024", True)
+
+
+def test_overview_tab_shows_heatmap_and_yearly_summary() -> None:
+    app = run_app()
+    charts = [json.loads(c.proto.spec) for c in app.get("plotly_chart")]
+    heatmap = next(c for c in charts if c["data"][0]["type"] == "heatmap")
+    yearly = next(d.value for d in app.dataframe if "Year" in d.value.columns)
+
+    assert (len(heatmap["data"][0]["y"]), yearly["Year"].tolist()) == (
+        6,
+        list(range(2016, 2025)),
     )

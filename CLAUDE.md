@@ -48,7 +48,7 @@ The pipeline has a strict dependency order:
 4. `build_ontology.py` — schema, provenance (dataset, source files), farm, turbines, components, sensors, and one `kt:PowerModel` per turbine declaring inputs/target from `config.yaml`. Overwrites `ontology/kelmarsh.ttl`, so `train` and `alerts` must run again after it.
 5. `train.py` — one LightGBM model per turbine; writes `expected_power` to Parquet, replaces the `kt:PowerModel` node (metrics, `prov:generatedAtTime`, model file), writes `models/metrics.json`.
 6. `alerts.py` — rolling-residual underperformance periods, written to the graph as `kt:Alert` (replacing the turbine's previous alerts).
-7. `app/app.py` — Streamlit dashboard with a "Replay" tab and an "Ontology & lineage" tab; reads structure from the graph and time series from Parquet via DuckDB.
+7. `app/app.py` — Streamlit dashboard with "Replay", "Overview" and "Ontology & lineage" tabs; reads structure from the graph and time series from Parquet via DuckDB.
 
 ## Module map
 

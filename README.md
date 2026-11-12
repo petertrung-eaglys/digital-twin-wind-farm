@@ -126,10 +126,18 @@ its turbine's 9 yearly raw files.
 
 ## Dashboard
 
+- **Sidebar**: turbine, replay date picker plus time-of-day slider (the
+  replay opens at 2022-01-01, the start of the test period), speed from
+  10 minutes to 1 week per tick, and the years shown in the power curve and
+  alerts table (the replay year by default, or a chosen range).
 - **Replay** tab: status map, KPI cards, 7-day power chart with alerts,
   power curve (a random sample of at most 50,000 normal rows,
   `dashboard.power_curve_max_points`), alerts table and the sensors SPARQL
   query.
+- **Overview** tab: heatmap of the monthly mean residual fraction of all
+  turbines over 2016–2024, and a yearly summary of the selected turbine
+  (energy, normal share, mean residual, alerts and lost energy). Residuals
+  before 2022 are in-sample (training period).
 - **Ontology & lineage** tab: a Graphviz diagram of the selected turbine
   traced back to its sources (specs → `Kelmarsh_WT_static.csv`; each sensor's
   readings → its 9 yearly raw `Turbine_Data_…csv` files → each year's SCADA

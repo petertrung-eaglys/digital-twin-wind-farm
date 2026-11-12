@@ -93,3 +93,86 @@ def advance(
     """Move ts forward by samples; return the new time and whether to keep playing."""
     nxt = ts + pd.Timedelta(minutes=samples * interval_minutes)
     return (nxt, True) if nxt < last else (last, False)
+
+
+def clamp(ts: pd.Timestamp, first: pd.Timestamp, last: pd.Timestamp) -> pd.Timestamp:
+    """ts limited to [first, last]."""
+    return min(max(ts, first), last)
+
+
+def replay_start(
+    first: pd.Timestamp,
+    last: pd.Timestamp,
+    train_end: str,
+    interval_minutes: int,
+) -> pd.Timestamp:
+    """First sample of the test period (after train_end), within the data."""
+    start = pd.Timestamp(train_end, tz="UTC") + pd.Timedelta(minutes=interval_minutes)
+    return clamp(start, first, last)
+
+
+def year_span(first_year: int, last_year: int) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """First and last instant (UTC) of the years first_year..last_year."""
+    end = pd.Timestamp(f"{last_year + 1}-01-01", tz="UTC") - pd.Timedelta(1, "ns")
+    return pd.Timestamp(f"{first_year}-01-01", tz="UTC"), end
+
+
+def rows_between(
+    frame: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp
+) -> pd.DataFrame:
+    """Rows with start <= timestamp <= end."""
+    return frame[frame["timestamp"].between(start, end)]
+
+
+def with_residual(series: pd.DataFrame, rated_power_kw: pd.Series) -> pd.DataFrame:
+    """Series plus residual fraction of each turbine's rated power."""
+    rated = series["turbine_id"].map(rated_power_kw)
+    return series.assign(
+        residual_fraction=(series["power"] - series["expected_power"]) / rated
+    )
+
+
+def monthly_residuals(series: pd.DataFrame, rated_power_kw: pd.Series) -> pd.DataFrame:
+    """Mean residual fraction of normal rows per turbine (rows) and month."""
+    normal = with_residual(series[series["is_normal"]], rated_power_kw)
+    month = normal["timestamp"].dt.tz_localize(None).dt.to_period("M")
+    return normal.pivot_table(
+        index="turbine_id",
+        columns=month.rename("month"),
+        values="residual_fraction",
+        aggfunc="mean",
+    )
+
+
+def yearly_summary(
+    series: pd.DataFrame,
+    alerts: pd.DataFrame,
+    rated_power_kw: pd.Series,
+    interval_minutes: int,
+) -> pd.DataFrame:
+    """Energy, normal share, mean residual and alerts per turbine and year.
+
+    Alerts count towards the year they start in.
+    """
+    hours = interval_minutes / 60
+    data = with_residual(series, rated_power_kw).assign(
+        year=series["timestamp"].dt.year,
+        energy_mwh=series["power"] * hours / 1000,
+        normal_residual=lambda d: d["residual_fraction"].where(d["is_normal"]),
+    )
+    per_year = data.groupby(["turbine_id", "year"]).agg(
+        energy_mwh=("energy_mwh", "sum"),
+        normal_share=("is_normal", "mean"),
+        mean_residual_fraction=("normal_residual", "mean"),
+    )
+    alert_stats = (
+        alerts.assign(year=alerts["start"].dt.year)
+        .groupby(["turbine_id", "year"])
+        .agg(alerts=("start", "size"), alert_lost_mwh=("lost_energy_mwh", "sum"))
+    )
+    return (
+        per_year.join(alert_stats)
+        .fillna({"alerts": 0, "alert_lost_mwh": 0.0})
+        .astype({"alerts": int})
+        .reset_index()
+    )

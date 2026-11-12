@@ -285,13 +285,14 @@ Read turbines, sensors, models and alerts from the graph. Read time series from 
 
 Layout:
 
-- Sidebar: turbine selector, replay date slider over the loaded data (2016–2024), play and pause buttons, replay speed selector (1, 6 or 24 samples per tick).
+- Sidebar: turbine selector, replay date picker over the loaded data (2016–2024) plus a time-of-day slider in 10-minute steps, play and pause buttons, replay speed selector (10 min, 1 h, 4 h, 1 day or 1 week per tick). The replay opens at the first sample of the test period (after `train_test_split.train_end`). A "Replay year only" checkbox (on by default) limits the power curve and alerts table to the replay year; unchecked, a year range is chosen.
 - Top row: a map of the 6 turbines from the graph coordinates. Colour each turbine by status at the current replay time: green when normal, amber when not normal, red when inside an alert period.
 - Middle: KPI cards for the selected turbine at the current replay time. Show actual power, expected power, residual fraction, and wind speed.
 - Chart: actual and expected power over the last 7 days up to the replay time, with alert periods shaded.
 - Chart: power curve scatter for the selected turbine, with the current point highlighted.
 - Table: alerts from the graph for the selected turbine, with start, end, mean residual and lost energy.
 - Expander: "Ontology view", showing the SPARQL query used and the sensors table for the selected turbine.
+- "Overview" tab: a heatmap of the monthly mean residual fraction (normal rows) of all turbines over all years, and a yearly summary table of the selected turbine (energy, normal share, mean residual fraction, alert count and lost energy, alerts counted in their start year).
 - Footer: dataset attribution with DOI and license.
 
 Replay must use `st.session_state` and `st.rerun()` with a short sleep. It must not block the UI.
@@ -611,3 +612,22 @@ Implements the plan in §10.1 on branch `feature/multi-year-scada`.
   0.026–0.039 on Q4 2022 with the 2022-only models); 27 alerts, 111.3 MWh,
   led by T04 in February–April 2023 (59.1 MWh). `make all` takes about
   160 s once downloaded (`load_scada` about 140 s).
+
+### Change: dashboard for multi-year data
+
+Navigating and summarising 9 years of data in the dashboard (§7.9 updated).
+
+- Replay time: a date picker plus a time-of-day slider replace the single
+  10-minute slider (about 473k steps over 2016–2024); both mirror
+  `replay_time`, which playing advances. The replay opens at the start of
+  the test period (2022-01-01 00:00) instead of the first timestamp.
+- Speeds: 10 min, 1 h, 4 h, 1 day and 1 week per tick (were 1, 6 and 24
+  samples); a year now plays in about 5 minutes at 1 day per tick.
+- Power curve and alerts table cover the replay year by default, or a
+  chosen year range.
+- New "Overview" tab: monthly mean residual heatmap of all turbines and a
+  yearly summary per turbine, computed once and cached.
+- `src/dashboard.py`: `clamp`, `replay_start`, `year_span`, `rows_between`,
+  `with_residual`, `monthly_residuals`, `yearly_summary`, with tests; new
+  app tests for the start time, date picker, speeds, year filter and
+  overview tab. The tab-label assertion now includes "Overview".
