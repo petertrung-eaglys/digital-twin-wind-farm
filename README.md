@@ -96,3 +96,14 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   it can be above the threshold, which applies to the trailing rolling mean.
 - `alerts.py` removes a turbine's existing alerts (`graph_utils.remove_alerts`)
   before adding new ones, so re-running it does not duplicate alerts.
+- The dashboard's testable logic (DuckDB loading in UTC, status, KPIs,
+  windows, replay stepping) lives in `src/dashboard.py`; `app/app.py` only
+  renders. `graph_utils` gained `get_models` (SPARQL) for model metrics, and
+  `parquet_path_of` moved there from `train.py` so the app does not import
+  LightGBM.
+- DuckDB returns timestamps in the machine's local time zone by default, so
+  the dashboard sets `TimeZone = 'UTC'` on its connection.
+- Map status colours: green = normal row, amber = not normal (excluded by
+  cleaning or no data), red = inside an alert period (takes precedence).
+- `tests/test_app.py` runs the real app with Streamlit's `AppTest`; it is
+  skipped when `data/processed/` has no Parquet files (run `make all` first).

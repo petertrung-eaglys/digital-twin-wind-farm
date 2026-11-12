@@ -18,6 +18,7 @@ from src.graph_utils import (
     get_sensors,
     get_turbines,
     load_graph,
+    parquet_path_of,
     save_graph,
 )
 
@@ -75,14 +76,6 @@ def train_turbine(
     )
     metrics |= {"n_train": int(train.sum()), "n_test": int(test.sum())}
     return model, metrics, model.predict(data[features])
-
-
-def parquet_path_of(sensors: pd.DataFrame) -> Path:
-    """The single Parquet file all sensors of a turbine are stored in."""
-    paths = sensors["parquet_path"].unique()
-    if len(paths) != 1:
-        raise LookupError(f"Expected one Parquet path, got {list(paths)}")
-    return Path(paths[0])
 
 
 def main() -> None:

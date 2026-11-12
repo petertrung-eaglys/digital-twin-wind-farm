@@ -13,10 +13,10 @@ from src.graph_utils import (
     get_sensors,
     get_turbines,
     load_graph,
+    parquet_path_of,
     remove_alerts,
     save_graph,
 )
-from src.train import parquet_path_of
 
 logger = logging.getLogger(__name__)
 

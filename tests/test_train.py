@@ -5,12 +5,11 @@ import pandas as pd
 import pytest
 from rdflib import Graph
 
-from src.graph_utils import get_model_target, get_sensors
+from src.graph_utils import get_model_target, get_sensors, parquet_path_of
 from src.train import (
     add_direction_features,
     evaluate,
     feature_columns,
-    parquet_path_of,
     split_masks,
     train_turbine,
 )

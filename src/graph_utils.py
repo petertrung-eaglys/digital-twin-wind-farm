@@ -83,6 +83,19 @@ WHERE {
 }
 """
 
+MODELS_QUERY = """
+SELECT ?model ?turbine_id ?mae_kw ?nmae ?generated_at
+WHERE {
+  ?model a kt:PowerModel ;
+         kt:forTurbine ?turbine .
+  ?turbine kt:turbineId ?turbine_id .
+  OPTIONAL { ?model kt:maeKW ?mae_kw }
+  OPTIONAL { ?model kt:nmae ?nmae }
+  OPTIONAL { ?model prov:generatedAtTime ?generated_at }
+}
+ORDER BY ?turbine_id
+"""
+
 ALERTS_QUERY = """
 SELECT ?alert ?turbine_id ?model ?start ?end ?mean_residual_fraction
        ?lost_energy_mwh
@@ -199,6 +212,14 @@ def get_sensors(g: Graph, turbine_id: str) -> pd.DataFrame:
     return query(g, SENSORS_QUERY, turbine_id=turbine_id).assign(turbine_id=turbine_id)
 
 
+def parquet_path_of(sensors: pd.DataFrame) -> Path:
+    """The single Parquet file all sensors of a turbine are stored in."""
+    paths = sensors["parquet_path"].unique()
+    if len(paths) != 1:
+        raise LookupError(f"Expected one Parquet path, got {list(paths)}")
+    return Path(paths[0])
+
+
 def get_model_inputs(g: Graph, turbine_id: str) -> list[str]:
     """Signal keys of the sensors the turbine's power model uses as inputs."""
     return query(g, MODEL_INPUTS_QUERY, turbine_id=turbine_id)["signal_key"].tolist()
@@ -212,6 +233,11 @@ def get_model_target(g: Graph, turbine_id: str) -> str:
             f"Expected one model target for {turbine_id}, got {len(keys)}"
         )
     return keys.iloc[0]
+
+
+def get_models(g: Graph) -> pd.DataFrame:
+    """Power models with turbine id, metrics and generation time (if trained)."""
+    return query(g, MODELS_QUERY)
 
 
 def get_alerts(g: Graph, turbine_id: str | None = None) -> pd.DataFrame:

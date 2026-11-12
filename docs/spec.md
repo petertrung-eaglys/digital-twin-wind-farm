@@ -445,3 +445,18 @@ Each target calls its script through uv, for example `uv run python -m src.downl
 - Result: 9 alerts, 28.1 MWh lost (T01 3 / 3.0, T02 3 / 19.2, T03 0,
   T04 2 / 5.2, T05 0, T06 1 / 0.6). Most fall in October 2022, just after
   `train_end`.
+
+### Milestone 9: `app/app.py`
+
+- Added `src/dashboard.py` (DuckDB loading in UTC, `row_at`, `in_alert`,
+  `turbine_status`, `window`, `alerts_overlapping`, `kpis`, `advance`) and
+  `app/app.py`: sidebar turbine selector, replay slider, play/pause
+  (callbacks + `st.session_state`, `time.sleep(0.5)` + `st.rerun()`), speed
+  1/6/24 samples per tick; status map, KPI cards, 7-day actual vs expected
+  chart with shaded alerts, power curve with current point, alerts table,
+  "Ontology view" expander with the SPARQL query and sensors, attribution.
+- Added `graph_utils.get_models`; moved `parquet_path_of` from `train.py` to
+  `graph_utils` (tests unchanged apart from the import).
+- Checked: server starts (health `ok`, HTTP 200); playing advances the replay
+  (11 ticks of 6 samples in 6 s); T02 turns red at 2022-10-04 19:50 and back
+  at 2022-10-08 14:20, matching its alert.
