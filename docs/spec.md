@@ -382,3 +382,15 @@ Each target calls its script through uv, for example `uv run python -m src.downl
 - Findings: header is the commented line 10 (`# Date and time,…`) in all 6
   turbine files; all 7 §6 signal names exist exactly, so `config.yaml` keeps
   them, now marked as confirmed. Deviations recorded in the README.
+
+### Milestone 4: `load_scada.py`
+
+- Added `src/load_scada.py`: reads the timestamp and the 7 configured signal
+  columns from each `Turbine_Data_*.csv` (skipping the metadata lines),
+  renames them to the config keys, parses timestamps as UTC, keeps only
+  `year`, drops duplicate timestamps and writes
+  `data/processed/scada_<turbine_id>.parquet`.
+- Turbine ids `T01`–`T06` come from `Kelmarsh_<N>` in the file name
+  (`scada_format.turbine_id_from_filename`, `format_turbine_id`).
+- `config.yaml` gained `scada.timestamp_column`.
+- Result: 6 files, 52,560 rows each; missing values 0.1–1.1 % per signal.

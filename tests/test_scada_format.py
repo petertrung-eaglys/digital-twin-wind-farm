@@ -2,12 +2,16 @@
 
 from pathlib import Path
 
+import pytest
+
 from src.scada_format import (
     classify_file,
+    format_turbine_id,
     group_files,
     header_line_index,
     parse_columns,
     read_head,
+    turbine_id_from_filename,
 )
 
 SAMPLE = (
@@ -72,3 +76,18 @@ def test_parse_columns_strips_comment_and_respects_quotes() -> None:
         "Wind speed, Minimum (m/s)",
         "Power (kW)",
     ]
+
+
+def test_format_turbine_id_zero_pads() -> None:
+    assert [format_turbine_id(n) for n in (1, 6, 12)] == ["T01", "T06", "T12"]
+
+
+def test_turbine_id_from_filename() -> None:
+    name = "Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230.csv"
+
+    assert turbine_id_from_filename(name) == "T03"
+
+
+def test_turbine_id_from_filename_rejects_unknown_name() -> None:
+    with pytest.raises(ValueError, match="No turbine number"):
+        turbine_id_from_filename("readme.csv")

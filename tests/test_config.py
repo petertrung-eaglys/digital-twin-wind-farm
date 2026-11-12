@@ -44,3 +44,7 @@ def test_shipped_config_has_all_sections() -> None:
     }
 
     assert sections <= set(load_config())
+
+
+def test_shipped_config_names_the_timestamp_column() -> None:
+    assert load_config()["scada"]["timestamp_column"] == "Date and time"

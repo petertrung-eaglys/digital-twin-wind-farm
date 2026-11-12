@@ -16,6 +16,8 @@ downloads:
     - name: Kelmarsh_SCADA_2022_4457.zip
       url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2022_4457.zip?download=1
       md5: b695d2b21cd5a236b2e690e0a43df5ab
+scada:
+  timestamp_column: "Date and time"   # timestamps are UTC (file metadata)
 signals:
   # Confirmed with inspect_data.py: identical in all 6 Turbine_Data files
   wind_speed: "Wind speed (m/s)"

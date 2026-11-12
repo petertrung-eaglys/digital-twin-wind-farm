@@ -1,11 +1,26 @@
 """Knowledge of the Greenbyte SCADA export format (file names and headers)."""
 
 import csv
+import re
 from itertools import islice
 from pathlib import Path
 
 COMMENT = "#"
 FILE_TYPES = {"Turbine_Data_": "turbine_data", "Status_": "status"}
+TURBINE_NUMBER_IN_NAME = re.compile(r"Kelmarsh_(\d+)_")
+
+
+def format_turbine_id(number: int) -> str:
+    """Canonical turbine id used everywhere, e.g. 1 -> 'T01'."""
+    return f"T{number:02d}"
+
+
+def turbine_id_from_filename(name: str) -> str:
+    """Derive the turbine id from a SCADA file name like '..._Kelmarsh_3_...'."""
+    match = TURBINE_NUMBER_IN_NAME.search(name)
+    if match is None:
+        raise ValueError(f"No turbine number in file name: {name}")
+    return format_turbine_id(int(match.group(1)))
 
 
 def classify_file(name: str) -> str:
