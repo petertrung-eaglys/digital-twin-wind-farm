@@ -288,11 +288,12 @@ Layout:
 - Sidebar: turbine selector, replay date picker over the loaded data (2016–2024) plus a time-of-day slider in 10-minute steps, play and pause buttons, replay speed selector (10 min, 1 h, 4 h, 1 day or 1 week per tick). The replay opens at the first sample of the test period (after `train_test_split.train_end`). A "Replay year only" checkbox (on by default) limits the power curve and alerts table to the replay year; unchecked, a year range is chosen.
 - Top row: a map of the 6 turbines from the graph coordinates. Colour each turbine by status at the current replay time: green when normal, amber when not normal, red when inside an alert period.
 - Middle: KPI cards for the selected turbine at the current replay time. Show actual power, expected power, residual fraction, and wind speed.
-- Chart: actual and expected power over the last 7 days up to the replay time, with alert periods shaded.
-- Chart: power curve scatter for the selected turbine, with the current point highlighted.
+- Badge above the KPI cards: "Training period" (replay time up to `train_test_split.train_end`, expected power in-sample) or "Test period" (out-of-sample).
+- Chart: actual and expected power over the last 7 days up to the replay time, with alert periods shaded red and the training period shaded grey.
+- Chart: power curve scatter for the selected turbine, with the current point highlighted on top of the samples.
 - Table: alerts from the graph for the selected turbine, with start, end, mean residual and lost energy.
 - Expander: "Ontology view", showing the SPARQL query used and the sensors table for the selected turbine.
-- "Overview" tab: a heatmap of the monthly mean residual fraction (normal rows) of all turbines over all years, and a yearly summary table of the selected turbine (energy, normal share, mean residual fraction, alert count and lost energy, alerts counted in their start year).
+- "Overview" tab: a heatmap of the monthly mean residual fraction (normal rows) of all turbines over all years, with a dashed line between the training and test months, and a yearly summary table of the selected turbine (energy, normal share, mean residual fraction, alert count and lost energy, alerts counted in their start year).
 - Footer: dataset attribution with DOI and license.
 
 Replay must use `st.session_state` and `st.rerun()` with a short sleep. It must not block the UI.
@@ -631,3 +632,15 @@ Navigating and summarising 9 years of data in the dashboard (§7.9 updated).
   `with_residual`, `monthly_residuals`, `yearly_summary`, with tests; new
   app tests for the start time, date picker, speeds, year filter and
   overview tab. The tab-label assertion now includes "Overview".
+
+### Change: train/test marking and power-curve highlight
+
+- Power curve: the current sample is now a WebGL trace like the normal
+  samples. Plotly draws WebGL traces above SVG ones, so the red point used
+  to be hidden behind the samples.
+- Train/test marking (from `train_test_split.train_end`): a badge above the
+  KPI cards ("Training period" grey / "Test period" blue), grey shading of
+  training days in the 7-day power chart, and a dashed split line in the
+  Overview heatmap.
+- `src/dashboard.py`: `in_training`, `training_span`, `training_months`,
+  with tests; app tests for the badge, shading, split line and trace order.

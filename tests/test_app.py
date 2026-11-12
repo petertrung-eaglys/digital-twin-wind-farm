@@ -150,3 +150,48 @@ def test_overview_tab_shows_heatmap_and_yearly_summary() -> None:
         6,
         list(range(2016, 2025)),
     )
+
+
+def test_badge_marks_training_or_test_period() -> None:
+    app = run_app()
+    test_badge = [m.value for m in app.markdown if "badge" in m.value]
+    app.session_state["replay_time"] = datetime(2019, 6, 1, 12, 0)
+    app.run()
+    training_badge = [m.value for m in app.markdown if "badge" in m.value]
+
+    assert (test_badge, training_badge) == (
+        [":blue-badge[Test period: expected power is out-of-sample]"],
+        [":gray-badge[Training period: expected power is in-sample]"],
+    )
+
+
+def test_power_chart_shades_training_days_across_the_split() -> None:
+    app = run_app()
+    app.session_state["replay_time"] = datetime(2022, 1, 3, 0, 0)
+    app.run()
+    chart = json.loads(app.get("plotly_chart")[1].proto.spec)
+
+    assert [a["text"] for a in chart["layout"]["annotations"]] == ["training period"]
+
+
+def test_current_point_is_drawn_on_top_of_the_power_curve() -> None:
+    app = run_app()
+    curve = json.loads(app.get("plotly_chart")[2].proto.spec)
+
+    assert [(t["type"], t["name"]) for t in curve["data"]] == [
+        ("scattergl", "Normal samples"),
+        ("scattergl", "Current"),
+    ]
+
+
+def test_heatmap_marks_split_between_training_and_test_months() -> None:
+    app = run_app()
+    charts = [json.loads(c.proto.spec) for c in app.get("plotly_chart")]
+    heatmap = next(c for c in charts if c["data"][0]["type"] == "heatmap")
+    months = heatmap["data"][0]["x"]
+    line = heatmap["layout"]["shapes"][0]
+
+    assert (months[int(line["x0"] + 0.5)], line["x0"] == line["x1"]) == (
+        "2022-01",
+        True,
+    )

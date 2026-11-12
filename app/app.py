@@ -38,6 +38,7 @@ from src.ontology_view import lineage_dot, schema_dot, without_sensors  # noqa: 
 # Samples (10 minutes each) advanced per tick, by label
 SPEEDS = {"10 min": 1, "1 h": 6, "4 h": 24, "1 day": 144, "1 week": 1008}
 TICK_SECONDS = 0.5
+TRAINING_COLOUR = "#78909c"
 CHART_DAYS = 7
 ATTRIBUTION = (
     "Data: Kelmarsh wind farm data by Cubico Sustainable Investments Ltd, "
@@ -142,10 +143,25 @@ def status_map(
 
 
 def power_chart(
-    recent: pd.DataFrame, alerts: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp
+    recent: pd.DataFrame,
+    alerts: pd.DataFrame,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    train_end: str,
 ) -> go.Figure:
-    """Actual and expected power with alert periods shaded."""
+    """Actual and expected power, alert periods and training period shaded."""
     fig = go.Figure()
+    training = db.training_span(start, end, train_end)
+    if training is not None:
+        fig.add_vrect(
+            x0=training[0],
+            x1=training[1],
+            fillcolor=TRAINING_COLOUR,
+            opacity=0.15,
+            line_width=0,
+            annotation_text="training period",
+            annotation_position="top left",
+        )
     for column, name in [("power", "Actual"), ("expected_power", "Expected")]:
         fig.add_scatter(
             x=recent["timestamp"], y=recent[column], name=name, mode="lines"
@@ -162,7 +178,7 @@ def power_chart(
         height=330,
         margin={"l": 0, "r": 0, "t": 30, "b": 0},
         yaxis_title="Power (kW)",
-        title=f"Last {CHART_DAYS} days (alert periods shaded)",
+        title=f"Last {CHART_DAYS} days (alerts red, training period grey)",
     )
     return fig
 
@@ -181,7 +197,9 @@ def power_curve(
         name="Normal samples",
     )
     if current is not None:
-        fig.add_scatter(
+        # WebGL traces are drawn above SVG ones, so the highlight must be WebGL
+        # too (and added last) to stay on top of the samples.
+        fig.add_scattergl(
             x=[current["wind_speed"]],
             y=[current["power"]],
             mode="markers",
@@ -209,8 +227,8 @@ def years_label(years: tuple[int, int]) -> str:
     return str(first) if first == last else f"{first}–{last}"
 
 
-def residual_heatmap(monthly: pd.DataFrame) -> go.Figure:
-    """Monthly mean residual fraction per turbine; red is underperformance."""
+def residual_heatmap(monthly: pd.DataFrame, train_end: str) -> go.Figure:
+    """Monthly mean residual per turbine (red: underperformance), split train/test."""
     fig = go.Figure(
         go.Heatmap(
             z=monthly.to_numpy(),
@@ -222,6 +240,15 @@ def residual_heatmap(monthly: pd.DataFrame) -> go.Figure:
             hovertemplate="%{y} %{x}: %{z:+.1%}<extra></extra>",
         )
     )
+    split = db.training_months(monthly.columns, train_end)
+    if 0 < split < len(monthly.columns):
+        # Categorical axis: month i sits at x = i, so the border is at split - 0.5
+        fig.add_vline(
+            x=split - 0.5,
+            line={"color": "black", "dash": "dash", "width": 2},
+            annotation_text="training ◀ ▶ test",
+            annotation_position="top",
+        )
     fig.update_layout(
         height=300,
         margin={"l": 0, "r": 0, "t": 30, "b": 0},
@@ -230,12 +257,16 @@ def residual_heatmap(monthly: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def render_overview(overview: dict[str, pd.DataFrame], turbine_id: str) -> None:
+def render_overview(
+    overview: dict[str, pd.DataFrame], turbine_id: str, train_end: str
+) -> None:
     """The overview tab: monthly residuals of all turbines, yearly summary."""
-    st.plotly_chart(residual_heatmap(overview["monthly"]), width="stretch")
+    st.plotly_chart(residual_heatmap(overview["monthly"], train_end), width="stretch")
     st.caption(
-        "Residual = (actual - expected power) / rated power. The model was "
-        "trained on the earlier years, so residuals there are in-sample."
+        "Residual = (actual - expected power) / rated power. Left of the "
+        f"dashed line (up to {train_end} UTC) the model saw the data in "
+        "training, so residuals there are in-sample and look better than "
+        "they would on unseen data."
     )
     st.subheader(f"Yearly summary of {turbine_id}")
     yearly = overview["yearly"]
@@ -273,6 +304,7 @@ def render_replay(
     turbine_id: str,
     ts: pd.Timestamp,
     years: tuple[int, int],
+    train_end: str,
     dashboard_config: dict,
 ) -> None:
     """The replay tab: map, KPIs, charts, alerts and the sensors query.
@@ -291,6 +323,10 @@ def render_replay(
     values = db.kpis(current, turbine["rated_power_kw"])
     model = structure["models"].set_index("turbine_id").loc[turbine_id]
     st.subheader(f"{turbine['label']} ({turbine_id}): {statuses[turbine_id]}")
+    if db.in_training(ts, train_end):
+        st.badge("Training period: expected power is in-sample", color="gray")
+    else:
+        st.badge("Test period: expected power is out-of-sample", color="blue")
     cols = st.columns(4)
     cols[0].metric("Actual power", fmt(values["power"], "{:,.0f} kW"))
     cols[1].metric("Expected power", fmt(values["expected_power"], "{:,.0f} kW"))
@@ -307,7 +343,9 @@ def render_replay(
     label = years_label(years)
     left, right = st.columns(2)
     left.plotly_chart(
-        power_chart(db.window(frame, ts, CHART_DAYS), turbine_alerts, start, ts),
+        power_chart(
+            db.window(frame, ts, CHART_DAYS), turbine_alerts, start, ts, train_end
+        ),
         width="stretch",
     )
     right.plotly_chart(
@@ -387,9 +425,8 @@ def main() -> None:
     first, last = series["timestamp"].min(), series["timestamp"].max()
     interval = config["sampling"]["interval_minutes"]
 
-    start = db.replay_start(
-        first, last, config["train_test_split"]["train_end"], interval
-    )
+    train_end = config["train_test_split"]["train_end"]
+    start = db.replay_start(first, last, train_end, interval)
     st.session_state.setdefault("playing", False)
     st.session_state.setdefault("replay_time", to_naive(start))
 
@@ -459,11 +496,14 @@ def main() -> None:
             turbine_id,
             ts,
             years,
+            train_end,
             config["dashboard"],
         )
     with overview_tab:
         render_overview(
-            read_overview(config["paths"]["ontology"], paths, interval), turbine_id
+            read_overview(config["paths"]["ontology"], paths, interval),
+            turbine_id,
+            train_end,
         )
     with ontology_tab:
         render_ontology(

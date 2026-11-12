@@ -256,3 +256,27 @@ def test_yearly_summary_counts_energy_normal_share_and_alerts() -> None:
             "alert_lost_mwh": 0.0,
         },
     ]
+
+
+def test_in_training_up_to_and_including_train_end() -> None:
+    assert [db.in_training(ts(m), "2022-10-01 00:10") for m in (0, 10, 20)] == [
+        True,
+        True,
+        False,
+    ]
+
+
+def test_training_span_clips_window_to_training_period() -> None:
+    train_end = "2022-10-01 00:20"
+
+    assert [
+        db.training_span(ts(0), ts(10), train_end),
+        db.training_span(ts(10), ts(40), train_end),
+        db.training_span(ts(30), ts(40), train_end),
+    ] == [(ts(0), ts(10)), (ts(10), ts(20)), None]
+
+
+def test_training_months_counts_months_up_to_train_end() -> None:
+    months = pd.period_range("2021-11", "2022-02", freq="M")
+
+    assert db.training_months(months, "2021-12-31 23:50") == 2

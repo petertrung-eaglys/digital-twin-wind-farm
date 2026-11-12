@@ -111,6 +111,24 @@ def replay_start(
     return clamp(start, first, last)
 
 
+def in_training(ts: pd.Timestamp, train_end: str) -> bool:
+    """True if ts lies in the model's training period (up to train_end)."""
+    return ts <= pd.Timestamp(train_end, tz="UTC")
+
+
+def training_span(
+    start: pd.Timestamp, end: pd.Timestamp, train_end: str
+) -> tuple[pd.Timestamp, pd.Timestamp] | None:
+    """Part of [start, end] inside the training period, or None."""
+    boundary = pd.Timestamp(train_end, tz="UTC")
+    return None if start > boundary else (start, min(end, boundary))
+
+
+def training_months(months: pd.Index, train_end: str) -> int:
+    """Number of monthly periods up to and including train_end's month."""
+    return int((months <= pd.Period(train_end, freq="M")).sum())
+
+
 def year_span(first_year: int, last_year: int) -> tuple[pd.Timestamp, pd.Timestamp]:
     """First and last instant (UTC) of the years first_year..last_year."""
     end = pd.Timestamp(f"{last_year + 1}-01-01", tz="UTC") - pd.Timedelta(1, "ns")
