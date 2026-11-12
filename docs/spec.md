@@ -363,3 +363,12 @@ Each target calls its script through uv, for example `uv run python -m src.downl
   `cleaning.standard_pressure_pa`, so scripts hold no hard-coded values.
 - Added `src/config.py` (`load_config`), the `Makefile` (§7.10 targets plus
   `test` and `lint`), and `tests/test_config.py`.
+
+### Milestone 2: `download.py`
+
+- Added `src/download.py`: streams each configured file to a `.part` file
+  with a tqdm progress bar, verifies the MD5 (raises on mismatch), skips files
+  already present with the correct MD5, and unzips the SCADA archive into
+  `data/raw/scada_2022/` unless all members are already extracted.
+- Pure helpers (`md5_of`, `needs_download`, `ensure_file` with an injectable
+  fetcher, `extract`) are covered by `tests/test_download.py` without network.
