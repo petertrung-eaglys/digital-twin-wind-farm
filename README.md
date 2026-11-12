@@ -85,3 +85,7 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   version (metrics, `prov:generatedAtTime`).
 - The schema is written first in `ontology/kelmarsh.ttl` by `save_graph`,
   which serialises schema triples and instance triples as two Turtle blocks.
+- `train.py` passes `verbose=-1` to `LGBMRegressor` in addition to
+  `n_estimators=300`; it only silences LightGBM's console output.
+- `graph_utils.get_model_target` (SPARQL) was added so `train.py` reads the
+  target signal from the graph, like the inputs.

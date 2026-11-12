@@ -238,7 +238,10 @@ kt:Kelmarsh a kt:WindFarm ;
 kt:PowerModel_T01 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T01" ;
+    prov:generatedAtTime "2026-11-12T00:25:42.442974+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T01 ;
+    kt:maeKW 71.5630854952287 ;
+    kt:nmae 0.03490882219279449 ;
     kt:target kt:T01_power ;
     kt:usesInput kt:T01_ambient_temp,
         kt:T01_wind_direction,
@@ -247,7 +250,10 @@ kt:PowerModel_T01 a prov:Entity,
 kt:PowerModel_T02 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T02" ;
+    prov:generatedAtTime "2026-11-12T00:25:43.670836+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T02 ;
+    kt:maeKW 80.33368217304239 ;
+    kt:nmae 0.039187162035630434 ;
     kt:target kt:T02_power ;
     kt:usesInput kt:T02_ambient_temp,
         kt:T02_wind_direction,
@@ -256,7 +262,10 @@ kt:PowerModel_T02 a prov:Entity,
 kt:PowerModel_T03 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T03" ;
+    prov:generatedAtTime "2026-11-12T00:25:44.944090+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T03 ;
+    kt:maeKW 62.069741723423405 ;
+    kt:nmae 0.030277922791913856 ;
     kt:target kt:T03_power ;
     kt:usesInput kt:T03_ambient_temp,
         kt:T03_wind_direction,
@@ -265,7 +274,10 @@ kt:PowerModel_T03 a prov:Entity,
 kt:PowerModel_T04 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T04" ;
+    prov:generatedAtTime "2026-11-12T00:25:46.186501+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T04 ;
+    kt:maeKW 62.97225264811127 ;
+    kt:nmae 0.030718172023468913 ;
     kt:target kt:T04_power ;
     kt:usesInput kt:T04_ambient_temp,
         kt:T04_wind_direction,
@@ -274,7 +286,10 @@ kt:PowerModel_T04 a prov:Entity,
 kt:PowerModel_T05 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T05" ;
+    prov:generatedAtTime "2026-11-12T00:25:47.426679+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T05 ;
+    kt:maeKW 71.0934475696894 ;
+    kt:nmae 0.034679730521799706 ;
     kt:target kt:T05_power ;
     kt:usesInput kt:T05_ambient_temp,
         kt:T05_wind_direction,
@@ -283,7 +298,10 @@ kt:PowerModel_T05 a prov:Entity,
 kt:PowerModel_T06 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T06" ;
+    prov:generatedAtTime "2026-11-12T00:25:48.651041+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T06 ;
+    kt:maeKW 53.67050844193839 ;
+    kt:nmae 0.0261807358253358 ;
     kt:target kt:T06_power ;
     kt:usesInput kt:T06_ambient_temp,
         kt:T06_wind_direction,

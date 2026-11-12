@@ -419,3 +419,16 @@ Each target calls its script through uv, for example `uv run python -m src.downl
   inputs/target from `config.yaml`.
 - Result: 805 triples; acceptance query returns 6 turbines × 7 sensors with
   coordinates. Extensions and the `kWh` mapping quirk are in the README.
+
+### Milestone 7: `train.py`
+
+- Added `src/train.py`: per turbine from the graph, reads inputs, target and
+  Parquet path via `graph_utils`, derives the §7.7 features (wind speed, air
+  density, wind direction and its sin/cos), trains `LGBMRegressor`
+  (`n_estimators=300`) on normal rows up to `train_end`, scores MAE/nMAE on
+  later normal rows, saves `models/power_<id>.txt`, writes `expected_power`
+  into the Parquet file, replaces the `kt:PowerModel` node with metrics and
+  `prov:generatedAtTime`, and writes `models/metrics.json`.
+- Added `graph_utils.get_model_target`.
+- Result: nMAE 0.026–0.039 (MAE 54–80 kW) on Q4 2022; all below 0.05.
+  Re-running keeps exactly 6 model nodes.

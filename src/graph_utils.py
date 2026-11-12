@@ -73,6 +73,16 @@ WHERE {
 ORDER BY ?signal_key
 """
 
+MODEL_TARGET_QUERY = """
+SELECT ?signal_key
+WHERE {
+  ?model kt:forTurbine ?turbine ;
+         kt:target ?sensor .
+  ?turbine kt:turbineId ?turbine_id .
+  ?sensor kt:signalKey ?signal_key .
+}
+"""
+
 ALERTS_QUERY = """
 SELECT ?alert ?turbine_id ?model ?start ?end ?mean_residual_fraction
        ?lost_energy_mwh
@@ -192,6 +202,16 @@ def get_sensors(g: Graph, turbine_id: str) -> pd.DataFrame:
 def get_model_inputs(g: Graph, turbine_id: str) -> list[str]:
     """Signal keys of the sensors the turbine's power model uses as inputs."""
     return query(g, MODEL_INPUTS_QUERY, turbine_id=turbine_id)["signal_key"].tolist()
+
+
+def get_model_target(g: Graph, turbine_id: str) -> str:
+    """Signal key of the sensor the turbine's power model predicts."""
+    keys = query(g, MODEL_TARGET_QUERY, turbine_id=turbine_id)["signal_key"]
+    if len(keys) != 1:
+        raise LookupError(
+            f"Expected one model target for {turbine_id}, got {len(keys)}"
+        )
+    return keys.iloc[0]
 
 
 def get_alerts(g: Graph, turbine_id: str | None = None) -> pd.DataFrame:
