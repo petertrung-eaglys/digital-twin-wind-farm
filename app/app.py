@@ -139,9 +139,11 @@ def power_chart(
     return fig
 
 
-def power_curve(frame: pd.DataFrame, current: pd.Series | None) -> go.Figure:
-    """Power curve of normal rows with the current sample highlighted."""
-    normal = frame[frame["is_normal"]]
+def power_curve(
+    frame: pd.DataFrame, current: pd.Series | None, max_points: int
+) -> go.Figure:
+    """Power curve of (a sample of) normal rows, current sample highlighted."""
+    normal = db.sample_rows(frame[frame["is_normal"]], max_points)
     fig = go.Figure()
     fig.add_scattergl(
         x=normal["wind_speed"],
@@ -163,7 +165,7 @@ def power_curve(frame: pd.DataFrame, current: pd.Series | None) -> go.Figure:
         margin={"l": 0, "r": 0, "t": 30, "b": 0},
         xaxis_title="Wind speed (m/s)",
         yaxis_title="Power (kW)",
-        title="Power curve",
+        title=f"Power curve (up to {max_points:,} normal samples)",
     )
     return fig
 
@@ -180,11 +182,14 @@ def render_replay(
     statuses: dict[str, str],
     turbine_id: str,
     ts: pd.Timestamp,
-    map_style: str,
+    dashboard_config: dict,
 ) -> None:
     """The replay tab: map, KPIs, charts, alerts and the sensors query."""
     turbines, sensors = structure["turbines"], structure["sensors"]
-    st.plotly_chart(status_map(turbines, statuses, map_style), width="stretch")
+    st.plotly_chart(
+        status_map(turbines, statuses, dashboard_config["map_style"]),
+        width="stretch",
+    )
 
     turbine = turbines.set_index("turbine_id").loc[turbine_id]
     frame, turbine_alerts = frames[turbine_id], alerts_by[turbine_id]
@@ -209,7 +214,10 @@ def render_replay(
         power_chart(db.window(frame, ts, CHART_DAYS), turbine_alerts, start, ts),
         width="stretch",
     )
-    right.plotly_chart(power_curve(frame, current), width="stretch")
+    right.plotly_chart(
+        power_curve(frame, current, dashboard_config["power_curve_max_points"]),
+        width="stretch",
+    )
 
     st.subheader("Alerts")
     st.dataframe(
@@ -320,7 +328,7 @@ def main() -> None:
             statuses,
             turbine_id,
             ts,
-            config["dashboard"]["map_style"],
+            config["dashboard"],
         )
     with ontology_tab:
         render_ontology(

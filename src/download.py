@@ -1,4 +1,4 @@
-"""Download the Kelmarsh dataset files from Zenodo and unzip the SCADA archive."""
+"""Download the Kelmarsh dataset files from Zenodo and unzip the SCADA archives."""
 
 import hashlib
 import logging
@@ -9,7 +9,7 @@ from pathlib import Path
 import requests
 from tqdm import tqdm
 
-from src.config import load_config
+from src.config import load_config, scada_archives
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +83,13 @@ def extract(archive: Path, target_dir: Path) -> bool:
     return True
 
 
+def extract_archives(archives: list[dict[str, str]], raw_dir: Path) -> list[bool]:
+    """Unzip each archive into its own extract_to folder under raw_dir."""
+    return [extract(raw_dir / a["name"], raw_dir / a["extract_to"]) for a in archives]
+
+
 def main() -> None:
-    """Download all configured files and unzip the SCADA archive."""
+    """Download all configured files and unzip every SCADA archive."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     config = load_config()
     raw_dir = Path(config["paths"]["raw"])
@@ -92,8 +97,8 @@ def main() -> None:
     files = config["downloads"]["files"]
     downloaded = [ensure_file(f["name"], f["url"], f["md5"], raw_dir) for f in files]
     logger.info("Downloaded %d of %d files", sum(downloaded), len(files))
-    archive = next(raw_dir / f["name"] for f in files if f["name"].endswith(".zip"))
-    extract(archive, raw_dir / config["downloads"]["scada_dir"])
+    extracted = extract_archives(scada_archives(config), raw_dir)
+    logger.info("Extracted %d of %d archives", sum(extracted), len(extracted))
 
 
 if __name__ == "__main__":

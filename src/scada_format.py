@@ -8,6 +8,7 @@ from pathlib import Path
 COMMENT = "#"
 FILE_TYPES = {"Turbine_Data_": "turbine_data", "Status_": "status"}
 TURBINE_NUMBER_IN_NAME = re.compile(r"Kelmarsh_(\d+)_")
+TURBINE_FILE_GLOB = "Turbine_Data_*.csv"
 
 
 def format_turbine_id(number: int) -> str:
@@ -21,6 +22,20 @@ def turbine_id_from_filename(name: str) -> str:
     if match is None:
         raise ValueError(f"No turbine number in file name: {name}")
     return format_turbine_id(int(match.group(1)))
+
+
+def turbine_data_files(folders: list[Path]) -> list[Path]:
+    """Turbine data files in the given folders, folder order then name order."""
+    return [p for folder in folders for p in sorted(folder.glob(TURBINE_FILE_GLOB))]
+
+
+def group_by_turbine(paths: list[Path]) -> dict[str, list[Path]]:
+    """Map turbine id to its files, keeping the given order within each id."""
+    ids = sorted({turbine_id_from_filename(p.name) for p in paths})
+    return {
+        tid: [p for p in paths if turbine_id_from_filename(p.name) == tid]
+        for tid in ids
+    }
 
 
 def classify_file(name: str) -> str:

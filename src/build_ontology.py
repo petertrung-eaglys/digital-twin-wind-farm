@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 from rdflib import RDF, RDFS, XSD, Graph, Literal, URIRef
 
-from src.config import load_config
+from src.config import load_config, scada_archives, scada_dirs
 from src.graph_utils import (
     DATASET_IRI,
     GEO,
@@ -26,7 +26,7 @@ from src.graph_utils import (
     source_iri,
     turbine_iri,
 )
-from src.scada_format import format_turbine_id, turbine_id_from_filename
+from src.scada_format import format_turbine_id, group_by_turbine, turbine_data_files
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,6 @@ MAPPING_FILE = "Kelmarsh_WT_dataSignalMapping.csv"
 UNIT_SUFFIX = re.compile(r"\s*\([^()]*\)$")
 TURBINE_NUMBER_IN_TITLE = re.compile(r"(\d+)$")
 COMPONENTS = ["Rotor", "Generator", "Nacelle"]
-TURBINE_FILE_GLOB = "Turbine_Data_*.csv"
 STATIC_DATE_FORMAT = "%d/%m/%Y"
 
 # signal key -> (component, observable property, QUDT unit)
@@ -277,16 +276,18 @@ def add_source_file(g: Graph, name: str, part_of: URIRef, **details: str) -> URI
     return node
 
 
-def add_sources(g: Graph, config: dict, turbine_files: dict[str, str]) -> None:
-    """Add the dataset, the downloaded files and the per-turbine SCADA files."""
+def add_sources(g: Graph, config: dict, turbine_files: dict[str, list[Path]]) -> None:
+    """Add the dataset, the downloaded files and the per-turbine SCADA files.
+
+    Each SCADA file is part of the archive unzipped into its parent folder.
+    """
     add_dataset(g, config["dataset"])
     for f in config["downloads"]["files"]:
         add_source_file(g, f["name"], DATASET_IRI, url=f["url"], md5=f["md5"])
-    archive = next(
-        f["name"] for f in config["downloads"]["files"] if f["name"].endswith(".zip")
-    )
-    for name in turbine_files.values():
-        add_source_file(g, name, source_iri(archive))
+    archive_of = {a["extract_to"]: a["name"] for a in scada_archives(config)}
+    for paths in turbine_files.values():
+        for path in paths:
+            add_source_file(g, path.name, source_iri(archive_of[path.parent.name]))
 
 
 def add_turbine(g: Graph, farm: URIRef, turbine: dict) -> None:
@@ -326,7 +327,7 @@ def add_sensor(
     column: str,
     parquet_path: str,
     mapping: pd.DataFrame,
-    raw_file: str,
+    raw_files: list[str],
 ) -> None:
     """Add one sensor of a turbine, attached to its component, with sources."""
     component, observable, unit = SIGNAL_SEMANTICS[key]
@@ -340,7 +341,8 @@ def add_sensor(
     g.add((sensor, KT.signalKey, Literal(key)))
     g.add((sensor, KT.scadaColumn, Literal(column)))
     g.add((sensor, KT.storedIn, Literal(parquet_path)))
-    g.add((sensor, PROV.wasDerivedFrom, source_iri(raw_file)))
+    for raw_file in raw_files:
+        g.add((sensor, PROV.wasDerivedFrom, source_iri(raw_file)))
     entry = mapping_entry(mapping, column)
     if entry is not None:
         g.add((sensor, PROV.wasDerivedFrom, source_iri(MAPPING_FILE)))
@@ -357,19 +359,11 @@ def add_observable_properties(g: Graph) -> None:
         g.add((KT[observable], RDFS.label, Literal(observable)))
 
 
-def turbine_files_in(scada_dir: Path) -> dict[str, str]:
-    """Map turbine id to its raw SCADA file name."""
-    return {
-        turbine_id_from_filename(p.name): p.name
-        for p in sorted(scada_dir.glob(TURBINE_FILE_GLOB))
-    }
-
-
 def build_graph(
     static: pd.DataFrame,
     mapping: pd.DataFrame,
     config: dict,
-    turbine_files: dict[str, str],
+    turbine_files: dict[str, list[Path]],
 ) -> Graph:
     """Build the full graph from the static and mapping tables and the config."""
     g = new_graph()
@@ -384,8 +378,9 @@ def build_graph(
         add_turbine(g, farm, turbine)
         tid = turbine["turbine_id"]
         parquet = str(processed / f"scada_{tid}.parquet")
+        raw_files = [p.name for p in turbine_files[tid]]
         for key, column in config["signals"].items():
-            add_sensor(g, tid, key, column, parquet, mapping, turbine_files[tid])
+            add_sensor(g, tid, key, column, parquet, mapping, raw_files)
         add_model(g, tid, config["model"]["inputs"], config["model"]["target"])
     return g
 
@@ -397,7 +392,7 @@ def main() -> None:
     raw = Path(config["paths"]["raw"])
     static = pd.read_csv(raw / STATIC_FILE, encoding="utf-8-sig")
     mapping = pd.read_csv(raw / MAPPING_FILE, encoding="utf-8-sig")
-    turbine_files = turbine_files_in(raw / config["downloads"]["scada_dir"])
+    turbine_files = group_by_turbine(turbine_data_files(scada_dirs(config)))
     g = build_graph(static, mapping, config, turbine_files)
     save_graph(g, config["paths"]["ontology"])
     logger.info("Wrote %d triples to %s", len(g), config["paths"]["ontology"])

@@ -6,7 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from src.download import ensure_file, extract, md5_of, needs_download
+from src.download import (
+    ensure_file,
+    extract,
+    extract_archives,
+    md5_of,
+    needs_download,
+)
 
 CONTENT = b"kelmarsh"
 CONTENT_MD5 = hashlib.md5(CONTENT).hexdigest()
@@ -85,3 +91,17 @@ def test_extract_skips_when_already_extracted(tmp_path: Path) -> None:
     extract(archive, target)
 
     assert not extract(archive, target)
+
+
+def test_extract_archives_unzips_each_into_its_own_folder(tmp_path: Path) -> None:
+    for year in (2021, 2022):
+        with zipfile.ZipFile(tmp_path / f"{year}.zip", "w") as zf:
+            zf.writestr("data.csv", str(year))
+    archives = [
+        {"name": f"{year}.zip", "extract_to": f"scada_{year}"} for year in (2021, 2022)
+    ]
+
+    assert (
+        extract_archives(archives, tmp_path),
+        [(tmp_path / f"scada_{y}/data.csv").read_text() for y in (2021, 2022)],
+    ) == ([True, True], ["2021", "2022"])

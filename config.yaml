@@ -1,4 +1,5 @@
-year: 2022
+# Calendar years kept by load_scada.py (2016 starts 15 April: commissioning)
+years: [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
 paths:
   raw: data/raw
   processed: data/processed
@@ -10,7 +11,6 @@ dataset:
   publisher: "Cubico Sustainable Investments Ltd"
   license: "CC-BY-4.0"
 downloads:
-  scada_dir: scada_2022
   files:
     - name: Kelmarsh_WT_static.csv
       url: https://zenodo.org/records/16807551/files/Kelmarsh_WT_static.csv?download=1
@@ -18,9 +18,43 @@ downloads:
     - name: Kelmarsh_WT_dataSignalMapping.csv
       url: https://zenodo.org/records/16807551/files/Kelmarsh_WT_dataSignalMapping.csv?download=1
       md5: ca8fe399ab15ae7111d3214c632efd36
+    # SCADA archives: each is unzipped into its own extract_to folder
+    - name: Kelmarsh_SCADA_2016_3082.zip
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2016_3082.zip?download=1
+      md5: ca8efbb6dbcfae3516583937eb5b5402
+      extract_to: scada_2016
+    - name: Kelmarsh_SCADA_2017_3083.zip
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2017_3083.zip?download=1
+      md5: c78263ee52ee0e48e2cb4bbaa1ba211a
+      extract_to: scada_2017
+    - name: Kelmarsh_SCADA_2018_3084.zip
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2018_3084.zip?download=1
+      md5: 972e5280172216a5fe76dcab19c741b0
+      extract_to: scada_2018
+    - name: Kelmarsh_SCADA_2019_3085.zip
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2019_3085.zip?download=1
+      md5: 14348a1572b722e1be10e53cd145c39a
+      extract_to: scada_2019
+    - name: Kelmarsh_SCADA_2020_3086.zip
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2020_3086.zip?download=1
+      md5: e189e02da98f32e74acc72e8559ef0db
+      extract_to: scada_2020
+    - name: Kelmarsh_SCADA_2021_4456.zip
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2021_4456.zip?download=1
+      md5: 4e0ef3d65f067fd3d8f3d30e79ab01ae
+      extract_to: scada_2021
     - name: Kelmarsh_SCADA_2022_4457.zip
       url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2022_4457.zip?download=1
       md5: b695d2b21cd5a236b2e690e0a43df5ab
+      extract_to: scada_2022
+    - name: Kelmarsh_SCADA_2023_5961.zip
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2023_5961.zip?download=1
+      md5: 685d9589347d1866f6f2cfe45b9af4f4
+      extract_to: scada_2023
+    - name: Kelmarsh_SCADA_2024_5962.zip
+      url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2024_5962.zip?download=1
+      md5: e9e3318f5b393d8596ff1801f8da0414
+      extract_to: scada_2024
 scada:
   timestamp_column: "Date and time"   # timestamps are UTC (file metadata)
 signals:
@@ -47,7 +81,7 @@ model:
   inputs: [wind_speed, wind_direction, ambient_temp]
   target: power
 train_test_split:
-  train_end: "2022-09-30 23:50"
+  train_end: "2021-12-31 23:50"   # train 2016-2021, test 2022-2024
 alerts:
   window_samples: 144          # 24 hours of 10-minute data
   threshold_fraction: -0.05    # mean residual below -5% of rated power
@@ -56,3 +90,6 @@ dashboard:
   # plotly map style: "satellite" = Esri World Imagery (no token needed);
   # alternatives: "satellite-streets", "carto-positron", "open-street-map"
   map_style: satellite
+  # Random sample of normal rows drawn in the power curve (all years together
+  # are ~370k points per turbine, too many to resend on every replay tick)
+  power_curve_max_points: 50000

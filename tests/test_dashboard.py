@@ -143,3 +143,20 @@ def test_active_alerts_returns_iris_containing_ts() -> None:
         set(),
         {"kt:A2"},
     ]
+
+
+def test_sample_rows_keeps_small_frames_whole() -> None:
+    frame = pd.DataFrame({"x": range(5)})
+
+    assert db.sample_rows(frame, 10).equals(frame)
+
+
+def test_sample_rows_caps_reproducibly_in_original_order() -> None:
+    frame = pd.DataFrame({"x": range(1000)})
+    first = db.sample_rows(frame, 100)
+
+    assert (
+        len(first),
+        first.index.is_monotonic_increasing,
+        first.equals(db.sample_rows(frame, 100)),
+    ) == (100, True, True)

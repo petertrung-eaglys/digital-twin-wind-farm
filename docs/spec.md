@@ -24,15 +24,15 @@ Files used in this PoC:
 |---|---|---|
 | `Kelmarsh_WT_static.csv` | https://zenodo.org/records/16807551/files/Kelmarsh_WT_static.csv?download=1 | af3a038f0f7fddfc1608ad0bfc8cf5ba |
 | `Kelmarsh_WT_dataSignalMapping.csv` | https://zenodo.org/records/16807551/files/Kelmarsh_WT_dataSignalMapping.csv?download=1 | ca8fe399ab15ae7111d3214c632efd36 |
-| `Kelmarsh_SCADA_2022_4457.zip` | https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2022_4457.zip?download=1 | b695d2b21cd5a236b2e690e0a43df5ab |
+| `Kelmarsh_SCADA_<year>_<id>.zip` (2016–2024) | https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_<year>_<id>.zip?download=1 | see §10.1 and `config.yaml` |
 
-The SCADA zip is about 490 MB. The download script must skip files that already exist with the correct MD5.
+The 9 SCADA zips total about 3.7 GB (about 43 GB unzipped; the 2022 zip alone is about 490 MB). The download script must skip files that already exist with the correct MD5.
 
 ## 3. Scope
 
 In scope:
 
-- One year of SCADA data (2022), all 6 turbines.
+- SCADA data for 2016–2024 (originally one year, 2022; extended per §10.1), all 6 turbines.
 - A small set of signals: wind speed, active power, wind direction, nacelle direction, ambient temperature, blade pitch angle, rotor speed.
 - One LightGBM power model per turbine.
 - Rule-based underperformance alerts.
@@ -41,7 +41,7 @@ In scope:
 
 Out of scope:
 
-- Other years, PMU data and grid meter data.
+- PMU data and grid meter data.
 - Component health models and wake models.
 - Triple stores, SHACL validation, RDS-PP designation codes.
 - MQTT, Kafka or any real streaming infrastructure.
@@ -133,9 +133,9 @@ The column names above are guesses. Section 7.2 requires confirming them from th
 
 ### 7.1 `download.py`
 
-- Download the three files in section 2 into `data/raw/`.
+- Download the files in section 2 (2 CSVs and 9 SCADA zips) into `data/raw/`.
 - Verify MD5. Skip a file if it exists and the MD5 matches.
-- Unzip the SCADA archive into `data/raw/scada_2022/`.
+- Unzip each SCADA archive into its own `data/raw/scada_<year>/` folder (`extract_to` in `config.yaml`).
 - Show a progress bar.
 
 Acceptance: running it twice downloads nothing the second time.
@@ -153,14 +153,14 @@ Acceptance: the developer can fill in `config.yaml` signal names from this outpu
 
 ### 7.3 `load_scada.py`
 
-- Read every turbine data file for 2022.
+- Read every turbine data file of every configured year (`years`), combine the files of each turbine, keep only rows of those years and drop duplicate timestamps (keep the row with the most non-missing signals).
 - Handle any metadata lines above the header.
 - Parse the timestamp column to UTC datetime.
 - Derive `turbine_id` (T01 to T06) from the file name or the static file. Use the same IDs everywhere.
 - Keep only the timestamp, `turbine_id` and the signals in `config.yaml`. Rename them to the config keys (`wind_speed`, `power`, and so on).
 - Write one Parquet file per turbine to `data/processed/scada_<turbine_id>.parquet`.
 
-Acceptance: 6 Parquet files exist. Each has about 52,560 rows (one year of 10-minute data), possibly fewer due to gaps. Print row counts and missing value percentages per column.
+Acceptance: 6 Parquet files exist. Each has about 52,560 rows per year (10-minute data), possibly fewer due to gaps. Print row counts, rows per year and missing value percentages per column.
 
 ### 7.4 `clean.py`
 
@@ -285,7 +285,7 @@ Read turbines, sensors, models and alerts from the graph. Read time series from 
 
 Layout:
 
-- Sidebar: turbine selector, replay date slider over 2022, play and pause buttons, replay speed selector (1, 6 or 24 samples per tick).
+- Sidebar: turbine selector, replay date slider over the loaded data (2016–2024), play and pause buttons, replay speed selector (1, 6 or 24 samples per tick).
 - Top row: a map of the 6 turbines from the graph coordinates. Colour each turbine by status at the current replay time: green when normal, amber when not normal, red when inside an alert period.
 - Middle: KPI cards for the selected turbine at the current replay time. Show actual power, expected power, residual fraction, and wind speed.
 - Chart: actual and expected power over the last 7 days up to the replay time, with alert periods shaded.
@@ -322,7 +322,7 @@ Each target calls its script through uv, for example `uv run python -m src.downl
 - Diagram of the pipeline (Mermaid is fine).
 - How to run: install uv, run `uv sync`, then use the Makefile targets.
 - Results table copied from `models/metrics.json` and alert summary.
-- Known limitations: one year only, simple cleaning rules, no validation against event logs.
+- Known limitations: simple cleaning rules, no validation against event logs.
 - Attribution to Cubico Sustainable Investments Ltd, DOI and CC-BY-4.0 license.
 
 ## 8. Instructions for Claude Code
@@ -354,7 +354,10 @@ Each target calls its script through uv, for example `uv run python -m src.downl
 
 ### 10.1 Future work: multi-year SCADA data (2016–2024)
 
-Status: planned, not started. The pipeline currently handles one year only.
+Status: done (see the change log, "Feature: multi-year SCADA data"). The
+plan below is kept as written; open decisions were settled as: all years
+2016–2024, train on 2016–2021 and test on 2022–2024, everything downloaded
+before coding.
 
 **Available data** (Zenodo record 16807551, checked 2026-11-12 via the
 Zenodo API; about 3.7 GB zipped, roughly 13 GB on disk once unzipped):
@@ -570,3 +573,41 @@ whether to download everything or develop against 2022 first.
   as a parameter and draws white turbine labels for contrast.
 - Tests: config default and an `AppTest` check that the rendered map uses
   the configured style.
+
+### Feature: multi-year SCADA data (2016–2024)
+
+Implements the plan in §10.1 on branch `feature/multi-year-scada`.
+
+- `config.yaml`: `year` → `years: [2016 … 2024]`; the 9 SCADA zips are
+  listed in `downloads.files`, each with an `extract_to: scada_<year>` folder
+  (replaces `downloads.scada_dir`); `train_end` → `2021-12-31 23:50`;
+  `dashboard.power_curve_max_points: 50000`.
+- `src/config.py`: `scada_archives` and `scada_dirs` (download entries with
+  `extract_to` and their folders).
+- `download.py`: `extract_archives` unzips every SCADA archive into its own
+  folder.
+- `scada_format.py`: `turbine_data_files` and `group_by_turbine`, shared by
+  `load_scada.py` and `build_ontology.py` (replaces
+  `build_ontology.turbine_files_in`).
+- `load_scada.py`: one Parquet per turbine from all its yearly files; keeps
+  the configured years; on duplicate timestamps keeps the row with the most
+  non-missing signals (the 2023/2024 exports repeat rows, some as all-NaN
+  copies that can come first); prints rows per year.
+- `build_ontology.py`: each sensor `prov:wasDerivedFrom` all its yearly raw
+  files; each raw file `kt:partOf` its own year's zip. Graph: 1,670 triples,
+  65 source files, 27 alerts.
+- `inspect_data.py`: inspects every year folder and lists configured columns
+  missing per turbine data file (none: all 7 signals present in all 54 files).
+- Dashboard: power curve draws a reproducible sample of at most 50,000
+  normal rows (`dashboard.sample_rows`); `render_replay` takes the
+  `dashboard` config section.
+- Tests: multi-year loading (year filter, no overwrite, boundary
+  duplicates, complete row preferred over earlier NaN copy, rows per year),
+  multi-archive extraction, file discovery and grouping, multi-file
+  provenance (fixture: T01 has 2021 and 2022 files), config helpers,
+  `missing_columns`, `sample_rows`. The shipped-config test now expects
+  11 downloads instead of 3.
+- Result: 473,184 rows per turbine; nMAE 0.023–0.028 on 2022–2024 (was
+  0.026–0.039 on Q4 2022 with the 2022-only models); 27 alerts, 111.3 MWh,
+  led by T04 in February–April 2023 (59.1 MWh). `make all` takes about
+  160 s once downloaded (`load_scada` about 140 s).

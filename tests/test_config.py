@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from src.config import load_config
+from src.config import load_config, scada_archives, scada_dirs
 
 EXPECTED_SIGNAL_KEYS = {
     "wind_speed",
@@ -26,10 +26,35 @@ def test_shipped_config_declares_all_seven_signals() -> None:
     assert set(load_config()["signals"]) == EXPECTED_SIGNAL_KEYS
 
 
-def test_shipped_config_declares_three_downloads_with_md5() -> None:
+def test_shipped_config_declares_eleven_downloads_with_md5() -> None:
     files = load_config()["downloads"]["files"]
 
-    assert [len(f["md5"]) for f in files] == [32, 32, 32]
+    assert [len(f["md5"]) for f in files] == [32] * 11
+
+
+def test_shipped_config_years_match_scada_archive_folders() -> None:
+    config = load_config()
+
+    assert [d.name for d in scada_dirs(config)] == [
+        f"scada_{y}" for y in config["years"]
+    ]
+
+
+def test_shipped_config_trains_up_to_end_of_2021() -> None:
+    assert load_config()["train_test_split"]["train_end"] == "2021-12-31 23:50"
+
+
+def test_scada_archives_are_entries_with_extract_to() -> None:
+    config = {
+        "downloads": {
+            "files": [
+                {"name": "a.csv"},
+                {"name": "b.zip", "extract_to": "scada_b"},
+            ]
+        }
+    }
+
+    assert scada_archives(config) == [{"name": "b.zip", "extract_to": "scada_b"}]
 
 
 def test_shipped_config_has_all_sections() -> None:

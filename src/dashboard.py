@@ -21,6 +21,13 @@ def load_series(parquet_paths: list[str | Path]) -> pd.DataFrame:
     return frame.assign(timestamp=pd.to_datetime(frame["timestamp"], utc=True))
 
 
+def sample_rows(frame: pd.DataFrame, max_rows: int, seed: int = 0) -> pd.DataFrame:
+    """At most max_rows rows: a reproducible random sample when there are more."""
+    if len(frame) <= max_rows:
+        return frame
+    return frame.sample(n=max_rows, random_state=seed).sort_index()
+
+
 def map_center(turbines: pd.DataFrame) -> dict[str, float]:
     """Mean turbine position; plotly's scatter_map does not centre itself."""
     return {"lat": float(turbines["lat"].mean()), "lon": float(turbines["long"].mean())}
