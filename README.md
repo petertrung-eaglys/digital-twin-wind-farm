@@ -70,3 +70,18 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   wind_direction, ambient_temp]`, `target: power`). The model's sensor inputs
   are these three signals; `air_density` and the sin/cos of wind direction
   are derived from them, so they are not sensors in the graph.
+- Ontology extensions beyond spec §7.5: `kt:turbineId` (e.g. `"T01"`, used
+  by every SPARQL lookup), and `kt:manufacturerTitle` / `kt:greenbyteSignalId`
+  on sensors, filled from the mapping CSV where a match exists (all 7 signals
+  match). Observable properties (`kt:WindSpeed`, …) are typed
+  `sosa:ObservableProperty`; units use QUDT (`unit:M-PER-SEC`, `unit:KiloW`,
+  `unit:DEG`, `unit:DEG_C`, `unit:REV-PER-MIN`). `nacelle_direction` is
+  attached to the Nacelle (not specified in the spec).
+- The mapping CSV lists the unit of `Power` as `kWh`; the SCADA column is
+  `Power (kW)` (10-minute mean power), so the sensor unit is `unit:KiloW`.
+- `build_ontology.py` already creates one `kt:PowerModel` per turbine with
+  its inputs and target (from `config.yaml`), so `train.py` can read the model
+  inputs from the graph. `train.py` replaces each node with the trained
+  version (metrics, `prov:generatedAtTime`).
+- The schema is written first in `ontology/kelmarsh.ttl` by `save_graph`,
+  which serialises schema triples and instance triples as two Turtle blocks.

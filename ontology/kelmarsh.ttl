@@ -1,0 +1,942 @@
+# Schema
+@prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix kt: <https://example.org/kelmarsh-twin#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+
+sosa:Sensor a rdfs:Class ;
+    rdfs:label "Sensor" ;
+    rdfs:comment "One SCADA signal of a turbine." .
+
+kt:Alert a rdfs:Class ;
+    rdfs:label "Alert" ;
+    rdfs:comment "An underperformance alert period." .
+
+kt:Component a rdfs:Class ;
+    rdfs:label "Component" ;
+    rdfs:comment "Superclass for turbine parts." .
+
+kt:Generator a rdfs:Class ;
+    rdfs:label "Generator" ;
+    rdfs:comment "The electrical generator." ;
+    rdfs:subClassOf kt:Component .
+
+kt:Nacelle a rdfs:Class ;
+    rdfs:label "Nacelle" ;
+    rdfs:comment "The nacelle housing on the tower." ;
+    rdfs:subClassOf kt:Component .
+
+kt:PowerModel a rdfs:Class ;
+    rdfs:label "Power model" ;
+    rdfs:comment "A trained model that predicts turbine power." ;
+    rdfs:subClassOf prov:Entity .
+
+kt:Rotor a rdfs:Class ;
+    rdfs:label "Rotor" ;
+    rdfs:comment "The rotor with hub and blades." ;
+    rdfs:subClassOf kt:Component .
+
+kt:Turbine a rdfs:Class ;
+    rdfs:label "Turbine" ;
+    rdfs:comment "One wind turbine." .
+
+kt:WindFarm a rdfs:Class ;
+    rdfs:label "Wind farm" ;
+    rdfs:comment "A wind farm site, here Kelmarsh." .
+
+qudt:unit a rdf:Property ;
+    rdfs:label "unit" ;
+    rdfs:comment "QUDT unit of the signal." ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range qudt:Unit .
+
+geo:lat a rdf:Property ;
+    rdfs:label "latitude" ;
+    rdfs:comment "WGS84 latitude." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range rdfs:Literal .
+
+geo:long a rdf:Property ;
+    rdfs:label "longitude" ;
+    rdfs:comment "WGS84 longitude." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range rdfs:Literal .
+
+sosa:observes a rdf:Property ;
+    rdfs:label "observes" ;
+    rdfs:comment "The property the sensor measures." ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range sosa:ObservableProperty .
+
+kt:attachedTo a rdf:Property ;
+    rdfs:label "attached to" ;
+    rdfs:comment "Sensor location." ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range kt:Component .
+
+kt:concerns a rdf:Property ;
+    rdfs:label "concerns" ;
+    rdfs:comment "Turbine of the alert." ;
+    rdfs:domain kt:Alert ;
+    rdfs:range kt:Turbine .
+
+kt:endTime a rdf:Property ;
+    rdfs:label "end time" ;
+    rdfs:comment "Alert end (UTC)." ;
+    rdfs:domain kt:Alert ;
+    rdfs:range rdfs:Literal .
+
+kt:forTurbine a rdf:Property ;
+    rdfs:label "for turbine" ;
+    rdfs:comment "Modelled turbine." ;
+    rdfs:domain kt:PowerModel ;
+    rdfs:range kt:Turbine .
+
+kt:greenbyteSignalId a rdf:Property ;
+    rdfs:label "Greenbyte signal id" ;
+    rdfs:comment "Signal id from the signal mapping file." ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range rdfs:Literal .
+
+kt:hasComponent a rdf:Property ;
+    rdfs:label "has component" ;
+    rdfs:comment "A turbine part." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range kt:Component .
+
+kt:hasSensor a rdf:Property ;
+    rdfs:label "has sensor" ;
+    rdfs:comment "A turbine's sensor." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range sosa:Sensor .
+
+kt:hasTurbine a rdf:Property ;
+    rdfs:label "has turbine" ;
+    rdfs:comment "A turbine of the farm." ;
+    rdfs:domain kt:WindFarm ;
+    rdfs:range kt:Turbine .
+
+kt:hubHeightM a rdf:Property ;
+    rdfs:label "hub height (m)" ;
+    rdfs:comment "Hub height." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range rdfs:Literal .
+
+kt:lostEnergyMWh a rdf:Property ;
+    rdfs:label "lost energy (MWh)" ;
+    rdfs:comment "Sum of expected minus actual energy in the period." ;
+    rdfs:domain kt:Alert ;
+    rdfs:range rdfs:Literal .
+
+kt:maeKW a rdf:Property ;
+    rdfs:label "MAE (kW)" ;
+    rdfs:comment "Test mean abs. error." ;
+    rdfs:domain kt:PowerModel ;
+    rdfs:range rdfs:Literal .
+
+kt:manufacturerTitle a rdf:Property ;
+    rdfs:label "manufacturer title" ;
+    rdfs:comment "Manufacturer signal name from the signal mapping file." ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range rdfs:Literal .
+
+kt:meanResidualFraction a rdf:Property ;
+    rdfs:label "mean residual fraction" ;
+    rdfs:comment "Mean of (power - expected) / rated power in the period." ;
+    rdfs:domain kt:Alert ;
+    rdfs:range rdfs:Literal .
+
+kt:nmae a rdf:Property ;
+    rdfs:label "nMAE" ;
+    rdfs:comment "MAE / rated power." ;
+    rdfs:domain kt:PowerModel ;
+    rdfs:range rdfs:Literal .
+
+kt:raisedBy a rdf:Property ;
+    rdfs:label "raised by" ;
+    rdfs:comment "Model behind the alert." ;
+    rdfs:domain kt:Alert ;
+    rdfs:range kt:PowerModel .
+
+kt:ratedPowerKW a rdf:Property ;
+    rdfs:label "rated power (kW)" ;
+    rdfs:comment "Rated power." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range rdfs:Literal .
+
+kt:rotorDiameterM a rdf:Property ;
+    rdfs:label "rotor diameter (m)" ;
+    rdfs:comment "Diameter." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range rdfs:Literal .
+
+kt:scadaColumn a rdf:Property ;
+    rdfs:label "SCADA column" ;
+    rdfs:comment "Original column name in the SCADA export." ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range rdfs:Literal .
+
+kt:signalKey a rdf:Property ;
+    rdfs:label "signal key" ;
+    rdfs:comment "Config key and Parquet column name, e.g. power." ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range rdfs:Literal .
+
+kt:startTime a rdf:Property ;
+    rdfs:label "start time" ;
+    rdfs:comment "Alert start (UTC)." ;
+    rdfs:domain kt:Alert ;
+    rdfs:range rdfs:Literal .
+
+kt:storedIn a rdf:Property ;
+    rdfs:label "stored in" ;
+    rdfs:comment "Path of the Parquet file holding the time series." ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range rdfs:Literal .
+
+kt:target a rdf:Property ;
+    rdfs:label "target" ;
+    rdfs:comment "The predicted signal." ;
+    rdfs:domain kt:PowerModel ;
+    rdfs:range sosa:Sensor .
+
+kt:turbineId a rdf:Property ;
+    rdfs:label "turbine id" ;
+    rdfs:comment "Short id, e.g. T01." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range rdfs:Literal .
+
+kt:usesInput a rdf:Property ;
+    rdfs:label "uses input" ;
+    rdfs:comment "An input signal." ;
+    rdfs:domain kt:PowerModel ;
+    rdfs:range sosa:Sensor .
+
+
+# Instances
+@prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix kt: <https://example.org/kelmarsh-twin#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+kt:Kelmarsh a kt:WindFarm ;
+    rdfs:label "Kelmarsh" ;
+    kt:hasTurbine kt:T01,
+        kt:T02,
+        kt:T03,
+        kt:T04,
+        kt:T05,
+        kt:T06 .
+
+kt:PowerModel_T01 a prov:Entity,
+        kt:PowerModel ;
+    rdfs:label "Power model T01" ;
+    kt:forTurbine kt:T01 ;
+    kt:target kt:T01_power ;
+    kt:usesInput kt:T01_ambient_temp,
+        kt:T01_wind_direction,
+        kt:T01_wind_speed .
+
+kt:PowerModel_T02 a prov:Entity,
+        kt:PowerModel ;
+    rdfs:label "Power model T02" ;
+    kt:forTurbine kt:T02 ;
+    kt:target kt:T02_power ;
+    kt:usesInput kt:T02_ambient_temp,
+        kt:T02_wind_direction,
+        kt:T02_wind_speed .
+
+kt:PowerModel_T03 a prov:Entity,
+        kt:PowerModel ;
+    rdfs:label "Power model T03" ;
+    kt:forTurbine kt:T03 ;
+    kt:target kt:T03_power ;
+    kt:usesInput kt:T03_ambient_temp,
+        kt:T03_wind_direction,
+        kt:T03_wind_speed .
+
+kt:PowerModel_T04 a prov:Entity,
+        kt:PowerModel ;
+    rdfs:label "Power model T04" ;
+    kt:forTurbine kt:T04 ;
+    kt:target kt:T04_power ;
+    kt:usesInput kt:T04_ambient_temp,
+        kt:T04_wind_direction,
+        kt:T04_wind_speed .
+
+kt:PowerModel_T05 a prov:Entity,
+        kt:PowerModel ;
+    rdfs:label "Power model T05" ;
+    kt:forTurbine kt:T05 ;
+    kt:target kt:T05_power ;
+    kt:usesInput kt:T05_ambient_temp,
+        kt:T05_wind_direction,
+        kt:T05_wind_speed .
+
+kt:PowerModel_T06 a prov:Entity,
+        kt:PowerModel ;
+    rdfs:label "Power model T06" ;
+    kt:forTurbine kt:T06 ;
+    kt:target kt:T06_power ;
+    kt:usesInput kt:T06_ambient_temp,
+        kt:T06_wind_direction,
+        kt:T06_wind_speed .
+
+kt:T01_nacelle_direction a sosa:Sensor ;
+    rdfs:label "nacelle_direction T01" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:NacelleDirection ;
+    kt:attachedTo kt:T01_Nacelle ;
+    kt:greenbyteSignalId 3 ;
+    kt:manufacturerTitle "Nacelle orientation" ;
+    kt:scadaColumn "Nacelle position (°)" ;
+    kt:signalKey "nacelle_direction" ;
+    kt:storedIn "data/processed/scada_T01.parquet" .
+
+kt:T01_pitch a sosa:Sensor ;
+    rdfs:label "pitch T01" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:PitchAngle ;
+    kt:attachedTo kt:T01_Rotor ;
+    kt:greenbyteSignalId 80 ;
+    kt:manufacturerTitle "Pitch angle for blade 1" ;
+    kt:scadaColumn "Blade angle (pitch position) A (°)" ;
+    kt:signalKey "pitch" ;
+    kt:storedIn "data/processed/scada_T01.parquet" .
+
+kt:T01_rotor_speed a sosa:Sensor ;
+    rdfs:label "rotor_speed T01" ;
+    qudt:unit unit:REV-PER-MIN ;
+    sosa:observes kt:RotorSpeed ;
+    kt:attachedTo kt:T01_Rotor ;
+    kt:greenbyteSignalId 54 ;
+    kt:manufacturerTitle "Value of rotor speed" ;
+    kt:scadaColumn "Rotor speed (RPM)" ;
+    kt:signalKey "rotor_speed" ;
+    kt:storedIn "data/processed/scada_T01.parquet" .
+
+kt:T02_nacelle_direction a sosa:Sensor ;
+    rdfs:label "nacelle_direction T02" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:NacelleDirection ;
+    kt:attachedTo kt:T02_Nacelle ;
+    kt:greenbyteSignalId 3 ;
+    kt:manufacturerTitle "Nacelle orientation" ;
+    kt:scadaColumn "Nacelle position (°)" ;
+    kt:signalKey "nacelle_direction" ;
+    kt:storedIn "data/processed/scada_T02.parquet" .
+
+kt:T02_pitch a sosa:Sensor ;
+    rdfs:label "pitch T02" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:PitchAngle ;
+    kt:attachedTo kt:T02_Rotor ;
+    kt:greenbyteSignalId 80 ;
+    kt:manufacturerTitle "Pitch angle for blade 1" ;
+    kt:scadaColumn "Blade angle (pitch position) A (°)" ;
+    kt:signalKey "pitch" ;
+    kt:storedIn "data/processed/scada_T02.parquet" .
+
+kt:T02_rotor_speed a sosa:Sensor ;
+    rdfs:label "rotor_speed T02" ;
+    qudt:unit unit:REV-PER-MIN ;
+    sosa:observes kt:RotorSpeed ;
+    kt:attachedTo kt:T02_Rotor ;
+    kt:greenbyteSignalId 54 ;
+    kt:manufacturerTitle "Value of rotor speed" ;
+    kt:scadaColumn "Rotor speed (RPM)" ;
+    kt:signalKey "rotor_speed" ;
+    kt:storedIn "data/processed/scada_T02.parquet" .
+
+kt:T03_nacelle_direction a sosa:Sensor ;
+    rdfs:label "nacelle_direction T03" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:NacelleDirection ;
+    kt:attachedTo kt:T03_Nacelle ;
+    kt:greenbyteSignalId 3 ;
+    kt:manufacturerTitle "Nacelle orientation" ;
+    kt:scadaColumn "Nacelle position (°)" ;
+    kt:signalKey "nacelle_direction" ;
+    kt:storedIn "data/processed/scada_T03.parquet" .
+
+kt:T03_pitch a sosa:Sensor ;
+    rdfs:label "pitch T03" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:PitchAngle ;
+    kt:attachedTo kt:T03_Rotor ;
+    kt:greenbyteSignalId 80 ;
+    kt:manufacturerTitle "Pitch angle for blade 1" ;
+    kt:scadaColumn "Blade angle (pitch position) A (°)" ;
+    kt:signalKey "pitch" ;
+    kt:storedIn "data/processed/scada_T03.parquet" .
+
+kt:T03_rotor_speed a sosa:Sensor ;
+    rdfs:label "rotor_speed T03" ;
+    qudt:unit unit:REV-PER-MIN ;
+    sosa:observes kt:RotorSpeed ;
+    kt:attachedTo kt:T03_Rotor ;
+    kt:greenbyteSignalId 54 ;
+    kt:manufacturerTitle "Value of rotor speed" ;
+    kt:scadaColumn "Rotor speed (RPM)" ;
+    kt:signalKey "rotor_speed" ;
+    kt:storedIn "data/processed/scada_T03.parquet" .
+
+kt:T04_nacelle_direction a sosa:Sensor ;
+    rdfs:label "nacelle_direction T04" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:NacelleDirection ;
+    kt:attachedTo kt:T04_Nacelle ;
+    kt:greenbyteSignalId 3 ;
+    kt:manufacturerTitle "Nacelle orientation" ;
+    kt:scadaColumn "Nacelle position (°)" ;
+    kt:signalKey "nacelle_direction" ;
+    kt:storedIn "data/processed/scada_T04.parquet" .
+
+kt:T04_pitch a sosa:Sensor ;
+    rdfs:label "pitch T04" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:PitchAngle ;
+    kt:attachedTo kt:T04_Rotor ;
+    kt:greenbyteSignalId 80 ;
+    kt:manufacturerTitle "Pitch angle for blade 1" ;
+    kt:scadaColumn "Blade angle (pitch position) A (°)" ;
+    kt:signalKey "pitch" ;
+    kt:storedIn "data/processed/scada_T04.parquet" .
+
+kt:T04_rotor_speed a sosa:Sensor ;
+    rdfs:label "rotor_speed T04" ;
+    qudt:unit unit:REV-PER-MIN ;
+    sosa:observes kt:RotorSpeed ;
+    kt:attachedTo kt:T04_Rotor ;
+    kt:greenbyteSignalId 54 ;
+    kt:manufacturerTitle "Value of rotor speed" ;
+    kt:scadaColumn "Rotor speed (RPM)" ;
+    kt:signalKey "rotor_speed" ;
+    kt:storedIn "data/processed/scada_T04.parquet" .
+
+kt:T05_nacelle_direction a sosa:Sensor ;
+    rdfs:label "nacelle_direction T05" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:NacelleDirection ;
+    kt:attachedTo kt:T05_Nacelle ;
+    kt:greenbyteSignalId 3 ;
+    kt:manufacturerTitle "Nacelle orientation" ;
+    kt:scadaColumn "Nacelle position (°)" ;
+    kt:signalKey "nacelle_direction" ;
+    kt:storedIn "data/processed/scada_T05.parquet" .
+
+kt:T05_pitch a sosa:Sensor ;
+    rdfs:label "pitch T05" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:PitchAngle ;
+    kt:attachedTo kt:T05_Rotor ;
+    kt:greenbyteSignalId 80 ;
+    kt:manufacturerTitle "Pitch angle for blade 1" ;
+    kt:scadaColumn "Blade angle (pitch position) A (°)" ;
+    kt:signalKey "pitch" ;
+    kt:storedIn "data/processed/scada_T05.parquet" .
+
+kt:T05_rotor_speed a sosa:Sensor ;
+    rdfs:label "rotor_speed T05" ;
+    qudt:unit unit:REV-PER-MIN ;
+    sosa:observes kt:RotorSpeed ;
+    kt:attachedTo kt:T05_Rotor ;
+    kt:greenbyteSignalId 54 ;
+    kt:manufacturerTitle "Value of rotor speed" ;
+    kt:scadaColumn "Rotor speed (RPM)" ;
+    kt:signalKey "rotor_speed" ;
+    kt:storedIn "data/processed/scada_T05.parquet" .
+
+kt:T06_nacelle_direction a sosa:Sensor ;
+    rdfs:label "nacelle_direction T06" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:NacelleDirection ;
+    kt:attachedTo kt:T06_Nacelle ;
+    kt:greenbyteSignalId 3 ;
+    kt:manufacturerTitle "Nacelle orientation" ;
+    kt:scadaColumn "Nacelle position (°)" ;
+    kt:signalKey "nacelle_direction" ;
+    kt:storedIn "data/processed/scada_T06.parquet" .
+
+kt:T06_pitch a sosa:Sensor ;
+    rdfs:label "pitch T06" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:PitchAngle ;
+    kt:attachedTo kt:T06_Rotor ;
+    kt:greenbyteSignalId 80 ;
+    kt:manufacturerTitle "Pitch angle for blade 1" ;
+    kt:scadaColumn "Blade angle (pitch position) A (°)" ;
+    kt:signalKey "pitch" ;
+    kt:storedIn "data/processed/scada_T06.parquet" .
+
+kt:T06_rotor_speed a sosa:Sensor ;
+    rdfs:label "rotor_speed T06" ;
+    qudt:unit unit:REV-PER-MIN ;
+    sosa:observes kt:RotorSpeed ;
+    kt:attachedTo kt:T06_Rotor ;
+    kt:greenbyteSignalId 54 ;
+    kt:manufacturerTitle "Value of rotor speed" ;
+    kt:scadaColumn "Rotor speed (RPM)" ;
+    kt:signalKey "rotor_speed" ;
+    kt:storedIn "data/processed/scada_T06.parquet" .
+
+kt:T01 a kt:Turbine ;
+    rdfs:label "Kelmarsh 1" ;
+    geo:lat 52.400604 ;
+    geo:long -0.947133 ;
+    kt:hasComponent kt:T01_Generator,
+        kt:T01_Nacelle,
+        kt:T01_Rotor ;
+    kt:hasSensor kt:T01_ambient_temp,
+        kt:T01_nacelle_direction,
+        kt:T01_pitch,
+        kt:T01_power,
+        kt:T01_rotor_speed,
+        kt:T01_wind_direction,
+        kt:T01_wind_speed ;
+    kt:hubHeightM 78.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T01" .
+
+kt:T01_Generator a kt:Generator ;
+    rdfs:label "Generator T01" .
+
+kt:T01_ambient_temp a sosa:Sensor ;
+    rdfs:label "ambient_temp T01" ;
+    qudt:unit unit:DEG_C ;
+    sosa:observes kt:AmbientTemperature ;
+    kt:attachedTo kt:T01_Nacelle ;
+    kt:greenbyteSignalId 359 ;
+    kt:manufacturerTitle "Temperature of converter inlet air" ;
+    kt:scadaColumn "Ambient temperature (converter) (°C)" ;
+    kt:signalKey "ambient_temp" ;
+    kt:storedIn "data/processed/scada_T01.parquet" .
+
+kt:T01_power a sosa:Sensor ;
+    rdfs:label "power T01" ;
+    qudt:unit unit:KiloW ;
+    sosa:observes kt:ActivePower ;
+    kt:attachedTo kt:T01_Generator ;
+    kt:greenbyteSignalId 5 ;
+    kt:manufacturerTitle "Actual value of active power" ;
+    kt:scadaColumn "Power (kW)" ;
+    kt:signalKey "power" ;
+    kt:storedIn "data/processed/scada_T01.parquet" .
+
+kt:T01_wind_direction a sosa:Sensor ;
+    rdfs:label "wind_direction T01" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:WindDirection ;
+    kt:attachedTo kt:T01_Nacelle ;
+    kt:greenbyteSignalId 2 ;
+    kt:manufacturerTitle "Wind direction" ;
+    kt:scadaColumn "Wind direction (°)" ;
+    kt:signalKey "wind_direction" ;
+    kt:storedIn "data/processed/scada_T01.parquet" .
+
+kt:T01_wind_speed a sosa:Sensor ;
+    rdfs:label "wind_speed T01" ;
+    qudt:unit unit:M-PER-SEC ;
+    sosa:observes kt:WindSpeed ;
+    kt:attachedTo kt:T01_Nacelle ;
+    kt:greenbyteSignalId 1 ;
+    kt:manufacturerTitle "Wind speed" ;
+    kt:scadaColumn "Wind speed (m/s)" ;
+    kt:signalKey "wind_speed" ;
+    kt:storedIn "data/processed/scada_T01.parquet" .
+
+kt:T02 a kt:Turbine ;
+    rdfs:label "Kelmarsh 2" ;
+    geo:lat 52.402551 ;
+    geo:long -0.949527 ;
+    kt:hasComponent kt:T02_Generator,
+        kt:T02_Nacelle,
+        kt:T02_Rotor ;
+    kt:hasSensor kt:T02_ambient_temp,
+        kt:T02_nacelle_direction,
+        kt:T02_pitch,
+        kt:T02_power,
+        kt:T02_rotor_speed,
+        kt:T02_wind_direction,
+        kt:T02_wind_speed ;
+    kt:hubHeightM 78.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T02" .
+
+kt:T02_Generator a kt:Generator ;
+    rdfs:label "Generator T02" .
+
+kt:T02_ambient_temp a sosa:Sensor ;
+    rdfs:label "ambient_temp T02" ;
+    qudt:unit unit:DEG_C ;
+    sosa:observes kt:AmbientTemperature ;
+    kt:attachedTo kt:T02_Nacelle ;
+    kt:greenbyteSignalId 359 ;
+    kt:manufacturerTitle "Temperature of converter inlet air" ;
+    kt:scadaColumn "Ambient temperature (converter) (°C)" ;
+    kt:signalKey "ambient_temp" ;
+    kt:storedIn "data/processed/scada_T02.parquet" .
+
+kt:T02_power a sosa:Sensor ;
+    rdfs:label "power T02" ;
+    qudt:unit unit:KiloW ;
+    sosa:observes kt:ActivePower ;
+    kt:attachedTo kt:T02_Generator ;
+    kt:greenbyteSignalId 5 ;
+    kt:manufacturerTitle "Actual value of active power" ;
+    kt:scadaColumn "Power (kW)" ;
+    kt:signalKey "power" ;
+    kt:storedIn "data/processed/scada_T02.parquet" .
+
+kt:T02_wind_direction a sosa:Sensor ;
+    rdfs:label "wind_direction T02" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:WindDirection ;
+    kt:attachedTo kt:T02_Nacelle ;
+    kt:greenbyteSignalId 2 ;
+    kt:manufacturerTitle "Wind direction" ;
+    kt:scadaColumn "Wind direction (°)" ;
+    kt:signalKey "wind_direction" ;
+    kt:storedIn "data/processed/scada_T02.parquet" .
+
+kt:T02_wind_speed a sosa:Sensor ;
+    rdfs:label "wind_speed T02" ;
+    qudt:unit unit:M-PER-SEC ;
+    sosa:observes kt:WindSpeed ;
+    kt:attachedTo kt:T02_Nacelle ;
+    kt:greenbyteSignalId 1 ;
+    kt:manufacturerTitle "Wind speed" ;
+    kt:scadaColumn "Wind speed (m/s)" ;
+    kt:signalKey "wind_speed" ;
+    kt:storedIn "data/processed/scada_T02.parquet" .
+
+kt:T03 a kt:Turbine ;
+    rdfs:label "Kelmarsh 3" ;
+    geo:lat 52.403834 ;
+    geo:long -0.94419 ;
+    kt:hasComponent kt:T03_Generator,
+        kt:T03_Nacelle,
+        kt:T03_Rotor ;
+    kt:hasSensor kt:T03_ambient_temp,
+        kt:T03_nacelle_direction,
+        kt:T03_pitch,
+        kt:T03_power,
+        kt:T03_rotor_speed,
+        kt:T03_wind_direction,
+        kt:T03_wind_speed ;
+    kt:hubHeightM 68.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T03" .
+
+kt:T03_Generator a kt:Generator ;
+    rdfs:label "Generator T03" .
+
+kt:T03_ambient_temp a sosa:Sensor ;
+    rdfs:label "ambient_temp T03" ;
+    qudt:unit unit:DEG_C ;
+    sosa:observes kt:AmbientTemperature ;
+    kt:attachedTo kt:T03_Nacelle ;
+    kt:greenbyteSignalId 359 ;
+    kt:manufacturerTitle "Temperature of converter inlet air" ;
+    kt:scadaColumn "Ambient temperature (converter) (°C)" ;
+    kt:signalKey "ambient_temp" ;
+    kt:storedIn "data/processed/scada_T03.parquet" .
+
+kt:T03_power a sosa:Sensor ;
+    rdfs:label "power T03" ;
+    qudt:unit unit:KiloW ;
+    sosa:observes kt:ActivePower ;
+    kt:attachedTo kt:T03_Generator ;
+    kt:greenbyteSignalId 5 ;
+    kt:manufacturerTitle "Actual value of active power" ;
+    kt:scadaColumn "Power (kW)" ;
+    kt:signalKey "power" ;
+    kt:storedIn "data/processed/scada_T03.parquet" .
+
+kt:T03_wind_direction a sosa:Sensor ;
+    rdfs:label "wind_direction T03" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:WindDirection ;
+    kt:attachedTo kt:T03_Nacelle ;
+    kt:greenbyteSignalId 2 ;
+    kt:manufacturerTitle "Wind direction" ;
+    kt:scadaColumn "Wind direction (°)" ;
+    kt:signalKey "wind_direction" ;
+    kt:storedIn "data/processed/scada_T03.parquet" .
+
+kt:T03_wind_speed a sosa:Sensor ;
+    rdfs:label "wind_speed T03" ;
+    qudt:unit unit:M-PER-SEC ;
+    sosa:observes kt:WindSpeed ;
+    kt:attachedTo kt:T03_Nacelle ;
+    kt:greenbyteSignalId 1 ;
+    kt:manufacturerTitle "Wind speed" ;
+    kt:scadaColumn "Wind speed (m/s)" ;
+    kt:signalKey "wind_speed" ;
+    kt:storedIn "data/processed/scada_T03.parquet" .
+
+kt:T04 a kt:Turbine ;
+    rdfs:label "Kelmarsh 4" ;
+    geo:lat 52.398781 ;
+    geo:long -0.94115 ;
+    kt:hasComponent kt:T04_Generator,
+        kt:T04_Nacelle,
+        kt:T04_Rotor ;
+    kt:hasSensor kt:T04_ambient_temp,
+        kt:T04_nacelle_direction,
+        kt:T04_pitch,
+        kt:T04_power,
+        kt:T04_rotor_speed,
+        kt:T04_wind_direction,
+        kt:T04_wind_speed ;
+    kt:hubHeightM 78.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T04" .
+
+kt:T04_Generator a kt:Generator ;
+    rdfs:label "Generator T04" .
+
+kt:T04_ambient_temp a sosa:Sensor ;
+    rdfs:label "ambient_temp T04" ;
+    qudt:unit unit:DEG_C ;
+    sosa:observes kt:AmbientTemperature ;
+    kt:attachedTo kt:T04_Nacelle ;
+    kt:greenbyteSignalId 359 ;
+    kt:manufacturerTitle "Temperature of converter inlet air" ;
+    kt:scadaColumn "Ambient temperature (converter) (°C)" ;
+    kt:signalKey "ambient_temp" ;
+    kt:storedIn "data/processed/scada_T04.parquet" .
+
+kt:T04_power a sosa:Sensor ;
+    rdfs:label "power T04" ;
+    qudt:unit unit:KiloW ;
+    sosa:observes kt:ActivePower ;
+    kt:attachedTo kt:T04_Generator ;
+    kt:greenbyteSignalId 5 ;
+    kt:manufacturerTitle "Actual value of active power" ;
+    kt:scadaColumn "Power (kW)" ;
+    kt:signalKey "power" ;
+    kt:storedIn "data/processed/scada_T04.parquet" .
+
+kt:T04_wind_direction a sosa:Sensor ;
+    rdfs:label "wind_direction T04" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:WindDirection ;
+    kt:attachedTo kt:T04_Nacelle ;
+    kt:greenbyteSignalId 2 ;
+    kt:manufacturerTitle "Wind direction" ;
+    kt:scadaColumn "Wind direction (°)" ;
+    kt:signalKey "wind_direction" ;
+    kt:storedIn "data/processed/scada_T04.parquet" .
+
+kt:T04_wind_speed a sosa:Sensor ;
+    rdfs:label "wind_speed T04" ;
+    qudt:unit unit:M-PER-SEC ;
+    sosa:observes kt:WindSpeed ;
+    kt:attachedTo kt:T04_Nacelle ;
+    kt:greenbyteSignalId 1 ;
+    kt:manufacturerTitle "Wind speed" ;
+    kt:scadaColumn "Wind speed (m/s)" ;
+    kt:signalKey "wind_speed" ;
+    kt:storedIn "data/processed/scada_T04.parquet" .
+
+kt:T05 a kt:Turbine ;
+    rdfs:label "Kelmarsh 5" ;
+    geo:lat 52.402308 ;
+    geo:long -0.940537 ;
+    kt:hasComponent kt:T05_Generator,
+        kt:T05_Nacelle,
+        kt:T05_Rotor ;
+    kt:hasSensor kt:T05_ambient_temp,
+        kt:T05_nacelle_direction,
+        kt:T05_pitch,
+        kt:T05_power,
+        kt:T05_rotor_speed,
+        kt:T05_wind_direction,
+        kt:T05_wind_speed ;
+    kt:hubHeightM 78.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T05" .
+
+kt:T05_Generator a kt:Generator ;
+    rdfs:label "Generator T05" .
+
+kt:T05_ambient_temp a sosa:Sensor ;
+    rdfs:label "ambient_temp T05" ;
+    qudt:unit unit:DEG_C ;
+    sosa:observes kt:AmbientTemperature ;
+    kt:attachedTo kt:T05_Nacelle ;
+    kt:greenbyteSignalId 359 ;
+    kt:manufacturerTitle "Temperature of converter inlet air" ;
+    kt:scadaColumn "Ambient temperature (converter) (°C)" ;
+    kt:signalKey "ambient_temp" ;
+    kt:storedIn "data/processed/scada_T05.parquet" .
+
+kt:T05_power a sosa:Sensor ;
+    rdfs:label "power T05" ;
+    qudt:unit unit:KiloW ;
+    sosa:observes kt:ActivePower ;
+    kt:attachedTo kt:T05_Generator ;
+    kt:greenbyteSignalId 5 ;
+    kt:manufacturerTitle "Actual value of active power" ;
+    kt:scadaColumn "Power (kW)" ;
+    kt:signalKey "power" ;
+    kt:storedIn "data/processed/scada_T05.parquet" .
+
+kt:T05_wind_direction a sosa:Sensor ;
+    rdfs:label "wind_direction T05" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:WindDirection ;
+    kt:attachedTo kt:T05_Nacelle ;
+    kt:greenbyteSignalId 2 ;
+    kt:manufacturerTitle "Wind direction" ;
+    kt:scadaColumn "Wind direction (°)" ;
+    kt:signalKey "wind_direction" ;
+    kt:storedIn "data/processed/scada_T05.parquet" .
+
+kt:T05_wind_speed a sosa:Sensor ;
+    rdfs:label "wind_speed T05" ;
+    qudt:unit unit:M-PER-SEC ;
+    sosa:observes kt:WindSpeed ;
+    kt:attachedTo kt:T05_Nacelle ;
+    kt:greenbyteSignalId 1 ;
+    kt:manufacturerTitle "Wind speed" ;
+    kt:scadaColumn "Wind speed (m/s)" ;
+    kt:signalKey "wind_speed" ;
+    kt:storedIn "data/processed/scada_T05.parquet" .
+
+kt:T06 a kt:Turbine ;
+    rdfs:label "Kelmarsh 6" ;
+    geo:lat 52.400687 ;
+    geo:long -0.936093 ;
+    kt:hasComponent kt:T06_Generator,
+        kt:T06_Nacelle,
+        kt:T06_Rotor ;
+    kt:hasSensor kt:T06_ambient_temp,
+        kt:T06_nacelle_direction,
+        kt:T06_pitch,
+        kt:T06_power,
+        kt:T06_rotor_speed,
+        kt:T06_wind_direction,
+        kt:T06_wind_speed ;
+    kt:hubHeightM 68.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T06" .
+
+kt:T06_Generator a kt:Generator ;
+    rdfs:label "Generator T06" .
+
+kt:T06_ambient_temp a sosa:Sensor ;
+    rdfs:label "ambient_temp T06" ;
+    qudt:unit unit:DEG_C ;
+    sosa:observes kt:AmbientTemperature ;
+    kt:attachedTo kt:T06_Nacelle ;
+    kt:greenbyteSignalId 359 ;
+    kt:manufacturerTitle "Temperature of converter inlet air" ;
+    kt:scadaColumn "Ambient temperature (converter) (°C)" ;
+    kt:signalKey "ambient_temp" ;
+    kt:storedIn "data/processed/scada_T06.parquet" .
+
+kt:T06_power a sosa:Sensor ;
+    rdfs:label "power T06" ;
+    qudt:unit unit:KiloW ;
+    sosa:observes kt:ActivePower ;
+    kt:attachedTo kt:T06_Generator ;
+    kt:greenbyteSignalId 5 ;
+    kt:manufacturerTitle "Actual value of active power" ;
+    kt:scadaColumn "Power (kW)" ;
+    kt:signalKey "power" ;
+    kt:storedIn "data/processed/scada_T06.parquet" .
+
+kt:T06_wind_direction a sosa:Sensor ;
+    rdfs:label "wind_direction T06" ;
+    qudt:unit unit:DEG ;
+    sosa:observes kt:WindDirection ;
+    kt:attachedTo kt:T06_Nacelle ;
+    kt:greenbyteSignalId 2 ;
+    kt:manufacturerTitle "Wind direction" ;
+    kt:scadaColumn "Wind direction (°)" ;
+    kt:signalKey "wind_direction" ;
+    kt:storedIn "data/processed/scada_T06.parquet" .
+
+kt:T06_wind_speed a sosa:Sensor ;
+    rdfs:label "wind_speed T06" ;
+    qudt:unit unit:M-PER-SEC ;
+    sosa:observes kt:WindSpeed ;
+    kt:attachedTo kt:T06_Nacelle ;
+    kt:greenbyteSignalId 1 ;
+    kt:manufacturerTitle "Wind speed" ;
+    kt:scadaColumn "Wind speed (m/s)" ;
+    kt:signalKey "wind_speed" ;
+    kt:storedIn "data/processed/scada_T06.parquet" .
+
+kt:T01_Rotor a kt:Rotor ;
+    rdfs:label "Rotor T01" .
+
+kt:T02_Rotor a kt:Rotor ;
+    rdfs:label "Rotor T02" .
+
+kt:T03_Rotor a kt:Rotor ;
+    rdfs:label "Rotor T03" .
+
+kt:T04_Rotor a kt:Rotor ;
+    rdfs:label "Rotor T04" .
+
+kt:T05_Rotor a kt:Rotor ;
+    rdfs:label "Rotor T05" .
+
+kt:T06_Rotor a kt:Rotor ;
+    rdfs:label "Rotor T06" .
+
+kt:T01_Nacelle a kt:Nacelle ;
+    rdfs:label "Nacelle T01" .
+
+kt:T02_Nacelle a kt:Nacelle ;
+    rdfs:label "Nacelle T02" .
+
+kt:T03_Nacelle a kt:Nacelle ;
+    rdfs:label "Nacelle T03" .
+
+kt:T04_Nacelle a kt:Nacelle ;
+    rdfs:label "Nacelle T04" .
+
+kt:T05_Nacelle a kt:Nacelle ;
+    rdfs:label "Nacelle T05" .
+
+kt:T06_Nacelle a kt:Nacelle ;
+    rdfs:label "Nacelle T06" .
+
+kt:ActivePower a sosa:ObservableProperty ;
+    rdfs:label "ActivePower" .
+
+kt:AmbientTemperature a sosa:ObservableProperty ;
+    rdfs:label "AmbientTemperature" .
+
+kt:NacelleDirection a sosa:ObservableProperty ;
+    rdfs:label "NacelleDirection" .
+
+kt:PitchAngle a sosa:ObservableProperty ;
+    rdfs:label "PitchAngle" .
+
+kt:RotorSpeed a sosa:ObservableProperty ;
+    rdfs:label "RotorSpeed" .
+
+kt:WindDirection a sosa:ObservableProperty ;
+    rdfs:label "WindDirection" .
+
+kt:WindSpeed a sosa:ObservableProperty ;
+    rdfs:label "WindSpeed" .
+

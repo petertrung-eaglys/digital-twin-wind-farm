@@ -405,3 +405,17 @@ Each target calls its script through uv, for example `uv run python -m src.downl
   completeness rule now and for the ontology's model inputs later.
 - Result: 74.1–80.8 % normal rows per turbine. Known limitation: a derating
   plateau near 1,650 kW above rated wind stays normal (README).
+
+### Milestone 6: `build_ontology.py` and `graph_utils.py`
+
+- Added `src/graph_utils.py`: namespaces, deterministic IRIs (`kt:T01`,
+  `kt:T01_power`, `kt:PowerModel_T01`, `kt:Alert_T01_001`), `load_graph`,
+  `save_graph` (schema block first), SPARQL-backed `get_turbines`,
+  `get_sensors`, `get_model_inputs`, `get_alerts`, and `add_model` (replaces
+  an existing node) and `add_alert`.
+- Added `src/build_ontology.py`: schema with labels/comments, farm, 6
+  turbines with real static values, 3 components each, 42 sensors with QUDT
+  units and mapping-CSV titles, and one `kt:PowerModel` per turbine declaring
+  inputs/target from `config.yaml`.
+- Result: 805 triples; acceptance query returns 6 turbines × 7 sensors with
+  coordinates. Extensions and the `kWh` mapping quirk are in the README.
