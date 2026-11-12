@@ -4,64 +4,95 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This repository currently contains only `docs/spec.md` — no `src/`, `app/`, `pyproject.toml`, or `Makefile` exist yet. `docs/spec.md` is the authoritative specification; read it in full before writing any code. Everything below is derived from it.
+The proof of concept is **implemented end to end** (spec §7.1–7.11 done, definition of done in §9 verified from a clean clone). `docs/spec.md` is the authoritative specification; its §11 change log records every milestone and later change, and `README.md` holds results, known limitations and a "Deviations from spec" section. Read the spec (including §10.1) and the README deviations before changing behaviour.
 
 ## Project
 
-One-day proof-of-concept data-driven digital twin for the Kelmarsh wind farm (6x Senvion MM92 turbines), built around a Zenodo SCADA dataset (record 16807551). The PoC favours a complete end-to-end slice over accuracy or completeness.
+Proof-of-concept data-driven digital twin for the Kelmarsh wind farm (6x Senvion MM92 turbines), built around a Zenodo SCADA dataset (record 16807551, 2022 data). The PoC favours a complete end-to-end slice over accuracy or completeness.
 
 ## Package management: uv only
 
-This project is managed exclusively through `uv` — no `pip`, no `requirements.txt`, no manually created venv.
+This project is managed exclusively through `uv` — no `pip`, no `requirements.txt`, no manually created venv. Python is pinned to 3.11 (`.python-version`).
 
-- Initialise with `uv init`; pin the interpreter with `uv python pin 3.11` (writes `.python-version`).
-- Add dependencies with `uv add <package>` — this is the only way new packages enter `pyproject.toml`. Ask before adding any dependency not already listed in spec §4.
+- Add dependencies with `uv add <package>` (dev tools with `uv add --dev`) — this is the only way new packages enter `pyproject.toml`. Ask before adding any dependency not listed in spec §4. Approved additions so far: `matplotlib` (runtime), `pytest`, `ruff`, `watchdog` (dev).
 - Commit `uv.lock` for reproducible installs.
 - Run every script through `uv run`, e.g. `uv run python -m src.<name>`, `uv run streamlit run app/app.py`.
 
-## Commands (as specified, once implemented)
+## Commands
 
-Via the planned `Makefile` (each target shells out through `uv run`):
+Via the `Makefile` (each target shells out through `uv run`):
 
 ```
 make setup      # uv sync
-make download   # fetch raw SCADA data into data/raw/
-make inspect    # run inspect_data.py
+make download   # fetch raw files into data/raw/ (MD5-verified, skips existing), unzip SCADA
+make inspect    # print raw file structure and column names
 make data       # load_scada.py + clean.py
 make ontology   # build_ontology.py
 make train      # train.py
 make alerts     # alerts.py
 make app        # uv run streamlit run app/app.py
-make all        # download through alerts, end to end
+make all        # download through alerts, end to end (~70 s once downloaded)
+make test       # uv run pytest
+make lint       # uv run ruff check .
 ```
 
-Each script must also be runnable standalone: `uv run python -m src.<name>`.
+Each script is also runnable standalone: `uv run python -m src.<name>`. Run a single test with `uv run pytest tests/test_alerts.py::test_short_periods_are_dropped`. Format with `uv run ruff format .`.
 
-## Required build order
+## Pipeline order
 
-The pipeline has a strict dependency order — do not skip ahead:
+The pipeline has a strict dependency order:
 
-1. `download.py` — fetch the 3 Zenodo files into `data/raw/`, verify MD5, skip already-downloaded files, unzip the SCADA archive.
-2. `inspect_data.py` — **must be run before writing the loader.** Prints raw file structure and real column names. `config.yaml`'s signal column names are placeholders/guesses and must be confirmed from this output before `load_scada.py` is written. Do not guess column names.
-3. `load_scada.py` → `clean.py` — produce per-turbine Parquet files in `data/processed/`, then add the `is_normal` cleaning flag and `air_density`.
-4. `build_ontology.py` — populate the RDF graph from the static/mapping CSVs and `config.yaml`.
-5. `train.py` — one LightGBM power model per turbine, metrics written back into the graph.
-6. `alerts.py` — rolling-residual underperformance detection, written back into the graph.
-7. `app/app.py` — Streamlit replay dashboard, reads everything from the graph + Parquet.
+1. `download.py` — fetch the files listed in `config.yaml` `downloads` into `data/raw/`, verify MD5, skip valid files, unzip the SCADA archive into `data/raw/scada_2022/`.
+2. `inspect_data.py` — prints raw file structure and column names. Run it before changing the loader or adding data; do not guess column names. The 7 signal names in `config.yaml` are confirmed for 2022.
+3. `load_scada.py` → `clean.py` — one Parquet per turbine in `data/processed/scada_<T0N>.parquet`, then `is_normal` and `air_density` added in place.
+4. `build_ontology.py` — schema, provenance (dataset, source files), farm, turbines, components, sensors, and one `kt:PowerModel` per turbine declaring inputs/target from `config.yaml`. Overwrites `ontology/kelmarsh.ttl`, so `train` and `alerts` must run again after it.
+5. `train.py` — one LightGBM model per turbine; writes `expected_power` to Parquet, replaces the `kt:PowerModel` node (metrics, `prov:generatedAtTime`, model file), writes `models/metrics.json`.
+6. `alerts.py` — rolling-residual underperformance periods, written to the graph as `kt:Alert` (replacing the turbine's previous alerts).
+7. `app/app.py` — Streamlit dashboard with a "Replay" tab and an "Ontology & lineage" tab; reads structure from the graph and time series from Parquet via DuckDB.
+
+## Module map
+
+- `src/config.py` — `load_config()`; `config.yaml` holds paths, downloads, dataset metadata, column names, model inputs/target, thresholds and `dashboard.map_style`. No hard-coded values in scripts.
+- `src/scada_format.py` — Greenbyte export layout: file classification, header detection, turbine ids (`T01`–`T06` from `Kelmarsh_<N>` in file names).
+- `src/graph_utils.py` — the only module that talks to the graph (see below).
+- `src/dashboard.py` — pure helpers for the app (DuckDB loading, status, KPIs, windows, replay stepping, active alerts, map centre).
+- `src/ontology_view.py` — pure Graphviz DOT rendering of the lineage subgraph and the schema.
+- `app/app.py` — rendering only; logic lives in `src/dashboard.py` and `src/ontology_view.py` so it can be unit-tested.
 
 ## Architecture: the RDF graph is the source of structural truth
 
-The central design point (easy to miss without reading multiple files): **`ontology/kelmarsh.ttl` — not `config.yaml` — is what the app and downstream scripts query for structure.** `config.yaml` only holds raw paths, column-name mappings, and numeric thresholds used while *building* the graph.
+The central design point (easy to miss without reading multiple files): **`ontology/kelmarsh.ttl` — not `config.yaml` — is what the app and downstream scripts query for structure.** `config.yaml` only holds raw paths, column-name mappings, metadata and numeric thresholds used while *building* the graph or running steps.
 
-- `graph_utils.py` is the only place that talks to the graph directly; it exposes `load_graph`, `get_turbines`, `get_sensors`, `get_model_inputs`, `get_alerts`, `add_model`, `add_alert` — all backed by SPARQL queries, not Python dict lookups.
-- Every other script (`train.py`, `alerts.py`, `app/app.py`) must go through `graph_utils.py` to discover turbines, sensor→Parquet-path mappings, and model inputs — never read `config.yaml` directly for this. This is what lets the ontology, rather than the config file, define the domain model.
-- Raw time-series values live in per-turbine Parquet files (`data/processed/scada_<turbine_id>.parquet`); the graph stores only metadata and relationships (sensors, models, alerts), with `kt:storedIn` pointing at the Parquet path and `kt:scadaColumn`/`kt:signalKey` bridging back to the original SCADA column names.
-- `train.py` writes predictions (`expected_power`) back into the turbine's Parquet file and writes a `kt:PowerModel` node (a `prov:Entity`) back into the graph — the graph accumulates provenance across pipeline runs, it isn't regenerated from scratch each time after `build_ontology.py`.
-- `alerts.py` reads `expected_power` vs `power` from Parquet, but writes the resulting `kt:Alert` periods back into the graph, linked to both the turbine and the `kt:PowerModel` that raised them.
+- `graph_utils.py` is the only place that talks to the graph directly. Lookups are SPARQL queries (module-level `*_QUERY` constants, shown in the app): `get_turbines`, `get_sensors`, `get_model_inputs`, `get_model_target`, `get_models`, `get_alerts`, `get_lineage`, `get_schema`. Writers: `add_model` (replaces the node), `add_alert`, `remove_alerts`. Also `load_graph`, `save_graph` (writes the schema block first), `parquet_path_of`.
+- Every other script (`train.py`, `alerts.py`, `app/app.py`) goes through `graph_utils.py` to discover turbines, sensor→Parquet-path mappings and model inputs — never `config.yaml` for this.
+- IRIs are deterministic (`kt:T01`, `kt:T01_power`, `kt:PowerModel_T01`, `kt:Alert_T01_001`, `kt:Source_<file>`), so re-running `train` or `alerts` replaces nodes instead of duplicating them.
+- Raw time-series values live in per-turbine Parquet files; the graph stores only metadata and relationships, with `kt:storedIn` pointing at the Parquet path and `kt:scadaColumn`/`kt:signalKey` bridging back to the SCADA column names.
+- Provenance: turbines `prov:wasDerivedFrom` the static CSV; sensors `prov:wasDerivedFrom` their raw SCADA file and, where matched, the mapping CSV; raw files are `kt:partOf` the zip, which is `kt:partOf` the `kt:Dataset`. The lineage tab renders this.
+- `air_density` and the sin/cos of wind direction are derived features, not sensors; the model's sensor inputs are `wind_speed`, `wind_direction`, `ambient_temp`.
+
+## Testing
+
+- Tests use small synthetic data and never the network; `tests/conftest.py` builds a 2-turbine graph via `build_graph`.
+- `tests/test_app.py` runs the real app with Streamlit's `AppTest` and is skipped when `data/processed/` has no Parquet files (run `make all` first). The DOT validity test is skipped when Graphviz `dot` is not installed.
+- Write tests for every change, keep the suite and `ruff check` green, and do not change existing assertions during refactoring.
+
+## Gotchas found during the build
+
+- SCADA files: 9 `#` metadata lines, then the column header is itself a `#` comment line; CRLF endings; the static CSV has a UTF-8 BOM.
+- The mapping CSV lists `Power` in `kWh`, but the column is `Power (kW)` (10-minute mean power).
+- rdflib 7 binds `geo` to GeoSPARQL by default; `new_graph()` forces the project prefixes (`override=True, replace=True`).
+- DuckDB returns timestamps in the machine's local time zone; `dashboard.load_series` sets `TimeZone = 'UTC'`.
+- plotly 7 `px.scatter_map` does not centre on the data; pass `center=dashboard.map_center(...)`.
+- Streamlit `AppTest` cannot drive a datetime slider; set `app.session_state["replay_time"]` instead. Avoid clicking Play in `AppTest` (the `st.rerun` loop runs until timeout).
+- `ontology/kelmarsh.ttl` is committed and changes on every `make train` (new `prov:generatedAtTime`); only commit it when its structure changed.
 
 ## Project-specific rules (from spec §8)
 
-- If real data deviates from the spec (file layout, column names, units), adapt the code to match the data and record the change in a "Deviations from spec" section at the end of `README.md` — don't silently special-case it in code without noting it.
+- If real data deviates from the spec (file layout, column names, units), adapt the code to match the data and record the change in the "Deviations from spec" section at the end of `README.md` — don't silently special-case it in code without noting it.
 - Use type hints and short docstrings; use `logging` for script output (not `print`, except where spec explicitly calls for printed acceptance-criteria output, e.g. row counts, alert summaries).
-- Never commit anything under `data/` or `models/` (confirm `.gitignore` covers both before adding files there).
-- Each spec component (§7.1–7.10) has its own acceptance criteria — check a component's acceptance criteria before moving on to the next one in the build order above.
+- Never commit anything under `data/` or `models/` (`.gitignore` covers both).
+- Log every change in the `docs/spec.md` §11 change log; commits follow the 50/70 message format, one commit per request.
+
+## Future work: multi-year data (not started)
+
+The pipeline currently handles **one year (2022) only**. Extending to the 2016–2024 SCADA archives is planned; the full plan (file names, MD5s, single-year assumptions in the code, planned changes, open decisions) is in `docs/spec.md` §10.1. Read it before touching years, downloads or `load_scada.py`. In particular: `load_scada.py` writes one Parquet per raw file, so putting several years' files for a turbine in one folder would silently overwrite data, and `download.py` only unzips the first archive.

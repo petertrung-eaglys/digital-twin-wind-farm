@@ -1,6 +1,6 @@
 # Kelmarsh Wind Farm Digital Twin (PoC)
 
-A one-day proof of concept of a data-driven digital twin for the Kelmarsh wind
+A proof of concept of a data-driven digital twin for the Kelmarsh wind
 farm (UK, 6 x Senvion MM92, 12.3 MW). It loads and cleans 2022 SCADA data,
 describes the farm in an RDF ontology, trains one LightGBM power model per
 turbine, raises underperformance alerts, and replays everything in a Streamlit

@@ -2,7 +2,7 @@
 
 ## 1. Goal
 
-Build a one-day proof of concept of a data-driven digital twin for Kelmarsh wind farm (UK, 6 x Senvion MM92, 12.3 MW). The PoC must show the full chain in one working demo:
+Build a proof of concept of a data-driven digital twin for Kelmarsh wind farm (UK, 6 x Senvion MM92, 12.3 MW). The PoC must show the full chain in one working demo:
 
 1. Load and clean real SCADA data.
 2. Describe the farm, turbines, components and signals in an RDF ontology.
@@ -351,6 +351,66 @@ Each target calls its script through uv, for example `uv run python -m src.downl
 - Extend to 2016 to 2024 and add grid meter reconciliation.
 - Add a PyWake farm model for wake losses.
 - Move the graph to a triple store and add SHACL validation.
+
+### 10.1 Future work: multi-year SCADA data (2016–2024)
+
+Status: planned, not started. The pipeline currently handles one year only.
+
+**Available data** (Zenodo record 16807551, checked 2026-11-12 via the
+Zenodo API; about 3.7 GB zipped, roughly 13 GB on disk once unzipped):
+
+| File | MD5 |
+|---|---|
+| `Kelmarsh_SCADA_2016_3082.zip` | ca8efbb6dbcfae3516583937eb5b5402 |
+| `Kelmarsh_SCADA_2017_3083.zip` | c78263ee52ee0e48e2cb4bbaa1ba211a |
+| `Kelmarsh_SCADA_2018_3084.zip` | 972e5280172216a5fe76dcab19c741b0 |
+| `Kelmarsh_SCADA_2019_3085.zip` | 14348a1572b722e1be10e53cd145c39a |
+| `Kelmarsh_SCADA_2020_3086.zip` | e189e02da98f32e74acc72e8559ef0db |
+| `Kelmarsh_SCADA_2021_4456.zip` | 4e0ef3d65f067fd3d8f3d30e79ab01ae |
+| `Kelmarsh_SCADA_2022_4457.zip` | b695d2b21cd5a236b2e690e0a43df5ab |
+| `Kelmarsh_SCADA_2023_5961.zip` | 685d9589347d1866f6f2cfe45b9af4f4 |
+| `Kelmarsh_SCADA_2024_5962.zip` | e9e3318f5b393d8596ff1801f8da0414 |
+
+URLs follow `https://zenodo.org/records/16807551/files/<file>?download=1`.
+2016 is likely a partial year (commercial operation from 15 April 2016).
+
+**Single-year assumptions in the current code:**
+
+| Where | Problem with several years |
+|---|---|
+| `download.py` (`main`) | Downloads every listed file but unzips only the first `.zip`, into the single `downloads.scada_dir` folder. |
+| `load_scada.py` (`tidy`, `main`) | Keeps only rows of `config.year`. Writes one Parquet per raw file, so several files per turbine in one folder overwrite each other: silent data loss. |
+| `build_ontology.py` (`turbine_files_in`, `add_sources`) | Provenance assumes one raw file per turbine and one SCADA zip. |
+| `config.yaml` | `year`, `downloads.scada_dir` and `train_test_split.train_end` are single values. |
+
+Already year-agnostic: `clean.py`, `train.py` (apart from `train_end`),
+`alerts.py`, all `graph_utils` SPARQL lookups, and the dashboard replay
+range (taken from the data). If a year's export has different column names,
+`load_scada.py` stops with an error naming the missing columns.
+
+**Planned changes:**
+
+1. `config.yaml`: replace `year` with `years: [...]`; list each SCADA zip in
+   `downloads.files` with its own folder (`scada_<year>/`).
+2. `download.py`: unzip every listed archive into its own folder.
+3. Run `inspect_data.py` per new year and confirm the signal column names
+   (2023 and 2024 archives are noticeably larger; the layout may differ).
+   Record any differences under "Deviations from spec" in the README.
+4. `load_scada.py`: gather all raw files per turbine, concatenate, keep the
+   configured years, drop duplicate timestamps at year boundaries, write one
+   Parquet per turbine.
+5. `build_ontology.py`: link each sensor to all its raw files
+   (`prov:wasDerivedFrom`), each `kt:partOf` its own zip.
+6. `train_test_split.train_end`: e.g. train on 2016–2021, test on 2022–2024;
+   more training seasons should reduce the October drift seen in the 2022
+   alerts.
+7. Tests: multi-year loading (no overwrite, boundary duplicates, year
+   filter), multi-archive extraction, multi-file provenance.
+8. Dashboard: about 2.8 million rows for 6 turbines × 9 years are held in
+   memory; sample the power-curve scatter if it becomes slow.
+
+**Open decisions:** which years to include, the train/test split, and
+whether to download everything or develop against 2022 first.
 ## 11. Change log
 
 ### Milestone 1: scaffold
