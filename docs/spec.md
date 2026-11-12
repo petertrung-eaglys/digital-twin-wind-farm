@@ -460,3 +460,8 @@ Each target calls its script through uv, for example `uv run python -m src.downl
 - Checked: server starts (health `ok`, HTTP 200); playing advances the replay
   (11 ticks of 6 samples in 6 s); T02 turns red at 2022-10-04 19:50 and back
   at 2022-10-08 14:20, matching its alert.
+
+### Dev dependency: `watchdog`
+
+- Added `watchdog` to the dev dependency group (user approved) so Streamlit
+  watches files efficiently during development; not needed by the pipeline.

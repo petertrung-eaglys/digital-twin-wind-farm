@@ -55,7 +55,8 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   the rated wind speed (12 m/s) and the standard pressure, so no values are
   hard-coded in scripts.
 - `matplotlib` is added (not in spec §4) to save the power curve PNGs.
-- `pytest` and `ruff` are added as dev dependencies.
+- `pytest`, `ruff` and `watchdog` (faster Streamlit reloads) are added as dev
+  dependencies.
 - The SCADA archive holds 6 `Turbine_Data_Kelmarsh_<N>_…csv` files and
   6 `Status_Kelmarsh_<N>_…csv` files (status/event logs, not used). In the
   turbine files the column header is itself a comment line
