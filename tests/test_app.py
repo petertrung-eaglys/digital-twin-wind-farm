@@ -4,6 +4,7 @@ Needs `make all` to have produced the Parquet files; skipped otherwise,
 because data/ is not part of the repository.
 """
 
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -65,3 +66,11 @@ def test_pause_stops_replay_without_advancing() -> None:
         False,
         start,
     )
+
+
+def test_status_map_is_centred_on_the_farm() -> None:
+    app = run_app()
+    status_map = json.loads(app.get("plotly_chart")[0].proto.spec)
+
+    center = status_map["layout"]["map"]["center"]
+    assert (round(center["lat"], 1), round(center["lon"], 1)) == (52.4, -0.9)

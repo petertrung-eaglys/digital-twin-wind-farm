@@ -477,3 +477,12 @@ Each target calls its script through uv, for example `uv run python -m src.downl
   schema (9 classes, 28 properties), 6 turbines, 42 sensors, 6 trained power
   models and 9 alerts; `models/metrics.json` covers all 6 turbines; all 91
   tests pass there (including the app smoke tests); the app starts cleanly.
+
+### Fix: status map not showing the turbines
+
+- plotly 7.1 `px.scatter_map` no longer centres the map on the data
+  (`layout.map.center` stayed empty), so MapLibre opened at lat 0 / lon 0 at
+  zoom 13.5 and the turbines were off-screen. Added
+  `dashboard.map_center` (mean turbine position) and pass it as `center`.
+- Tests: unit test for `map_center`, and an `AppTest` check that the rendered
+  map spec is centred on Kelmarsh (both failed before the fix).

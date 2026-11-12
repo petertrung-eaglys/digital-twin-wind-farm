@@ -121,3 +121,13 @@ def test_load_series_reads_parquet_in_utc(tmp_path: Path) -> None:
 @pytest.mark.parametrize("status", ["normal", "not normal", "alert"])
 def test_every_status_has_a_colour(status: str) -> None:
     assert db.STATUS_COLOURS[status].startswith("#")
+
+
+def test_map_center_is_mean_of_turbine_coordinates() -> None:
+    turbines = pd.DataFrame({"lat": [52.40, 52.42], "long": [-0.95, -0.93]})
+
+    center = db.map_center(turbines)
+    assert (center["lat"], center["lon"]) == (
+        pytest.approx(52.41),
+        pytest.approx(-0.94),
+    )

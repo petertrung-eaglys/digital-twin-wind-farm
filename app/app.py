@@ -79,6 +79,7 @@ def status_map(turbines: pd.DataFrame, statuses: dict[str, str]) -> go.Figure:
         category_orders={"status": list(db.STATUS_COLOURS)},
         hover_name="turbine_id",
         text="turbine_id",
+        center=db.map_center(turbines),
         zoom=13.5,
         height=320,
         map_style="carto-positron",

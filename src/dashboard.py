@@ -21,6 +21,11 @@ def load_series(parquet_paths: list[str | Path]) -> pd.DataFrame:
     return frame.assign(timestamp=pd.to_datetime(frame["timestamp"], utc=True))
 
 
+def map_center(turbines: pd.DataFrame) -> dict[str, float]:
+    """Mean turbine position; plotly's scatter_map does not centre itself."""
+    return {"lat": float(turbines["lat"].mean()), "lon": float(turbines["long"].mean())}
+
+
 def row_at(frame: pd.DataFrame, ts: pd.Timestamp) -> pd.Series | None:
     """The latest row at or before ts, or None if there is none."""
     before = frame[frame["timestamp"] <= ts]
