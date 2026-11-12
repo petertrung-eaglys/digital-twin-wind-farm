@@ -6,6 +6,34 @@ describes the farm in an RDF ontology, trains one LightGBM power model per
 turbine, raises underperformance alerts, and replays everything in a Streamlit
 dashboard. See [docs/spec.md](docs/spec.md) for the full specification.
 
+## Pipeline
+
+The RDF graph (`ontology/kelmarsh.ttl`) is the source of structural truth:
+after `build_ontology`, every step discovers turbines, sensors, Parquet paths
+and model inputs through SPARQL (`src/graph_utils.py`) and writes its results
+(models, alerts) back into the graph. Time series stay in Parquet.
+
+```mermaid
+flowchart LR
+    Z[(Zenodo<br/>16807551)] -->|download| R[data/raw<br/>CSV + SCADA zip]
+    R -->|inspect_data| C[config.yaml<br/>signal names]
+    R -->|load_scada| P[(data/processed<br/>scada_T0N.parquet)]
+    C -.-> P
+    P -->|clean<br/>is_normal, air_density| P
+    R -->|build_ontology<br/>static + mapping CSV| G[(ontology/<br/>kelmarsh.ttl)]
+    C -.-> G
+    G -->|SPARQL| T[train]
+    P --> T
+    T -->|expected_power| P
+    T -->|kt:PowerModel| G
+    T --> M[models/<br/>power_T0N.txt<br/>metrics.json]
+    G -->|SPARQL| A[alerts]
+    P --> A
+    A -->|kt:Alert| G
+    G -->|SPARQL| D[app<br/>Streamlit replay]
+    P -->|DuckDB| D
+```
+
 ## Setup
 
 Install [uv](https://docs.astral.sh/uv/), then:
@@ -36,6 +64,47 @@ make test         # uv run pytest
 make lint         # uv run ruff check .
 ```
 
+## Results
+
+From a clean clone, `uv sync` then `make all` runs in about 70 seconds once
+the data is downloaded.
+
+**Data and cleaning:** each turbine has 52,560 ten-minute rows (the full year,
+no gaps) with 0.1–1.1 % missing values per signal; 74–81 % of rows are normal.
+
+**Power models** (`models/metrics.json`, test set = normal rows in Q4 2022,
+rated power 2,050 kW):
+
+| Turbine | MAE (kW) | nMAE | Train rows | Test rows |
+|---|---|---|---|---|
+| T01 | 71.6 | 0.035 | 30,907 | 10,836 |
+| T02 | 80.3 | 0.039 | 32,522 | 9,890 |
+| T03 | 62.1 | 0.030 | 31,753 | 10,664 |
+| T04 | 63.0 | 0.031 | 28,197 | 10,731 |
+| T05 | 71.1 | 0.035 | 31,886 | 10,564 |
+| T06 | 53.7 | 0.026 | 29,084 | 10,585 |
+
+All turbines meet the nMAE < 0.05 target.
+
+**Alerts** (24 h rolling residual below −5 % of rated power for at least 6 h):
+
+| Turbine | Alerts | Lost energy (MWh) |
+|---|---|---|
+| T01 | 3 | 3.0 |
+| T02 | 3 | 19.2 |
+| T03 | 0 | 0.0 |
+| T04 | 2 | 5.2 |
+| T05 | 0 | 0.0 |
+| T06 | 1 | 0.6 |
+| **Total** | **9** | **28.1** |
+
+The largest alert is T02 from 2022-10-04 19:50 to 2022-10-08 14:10 (mean
+residual −8.3 % of rated power, 13.3 MWh). Most alerts fall in October,
+just after the training period ends (see limitations).
+
+**Graph:** `ontology/kelmarsh.ttl` holds the schema (9 classes,
+28 properties), 6 turbines, 42 sensors, 6 trained power models and 9 alerts.
+
 ## Known limitations
 
 - One year (2022) only.
@@ -43,6 +112,11 @@ make lint         # uv run ruff check .
   rated wind speed is not removed, because the pitch rule only applies below
   rated wind speed.
 - No validation of alerts against the status/event logs.
+- The models are trained on January–September and tested on October–December
+  only; alerts clustered in early October may partly reflect seasonal model
+  drift rather than real underperformance.
+- Replay is a historical simulation (no streaming), and the dashboard loads
+  the whole year of the 6 turbines into memory (about 315,000 rows).
 
 ## Attribution
 

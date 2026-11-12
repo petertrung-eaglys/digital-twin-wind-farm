@@ -465,3 +465,15 @@ Each target calls its script through uv, for example `uv run python -m src.downl
 
 - Added `watchdog` to the dev dependency group (user approved) so Streamlit
   watches files efficiently during development; not needed by the pipeline.
+
+### Milestone 10: README and definition of done
+
+- README completed: pipeline Mermaid diagram, results (data, model metrics
+  from `models/metrics.json`, alert summary, graph contents), extra known
+  limitations (seasonal drift after `train_end`, in-memory replay).
+- Definition of done checked in a fresh clone (raw files copied in, so the
+  download step verified MD5s and unzipped without re-downloading):
+  `uv sync` + `make all` finished without errors in 72 s; the graph holds the
+  schema (9 classes, 28 properties), 6 turbines, 42 sensors, 6 trained power
+  models and 9 alerts; `models/metrics.json` covers all 6 turbines; all 91
+  tests pass there (including the app smoke tests); the app starts cleanly.
