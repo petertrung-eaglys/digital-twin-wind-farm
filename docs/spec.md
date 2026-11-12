@@ -432,3 +432,16 @@ Each target calls its script through uv, for example `uv run python -m src.downl
 - Added `graph_utils.get_model_target`.
 - Result: nMAE 0.026–0.039 (MAE 54–80 kW) on Q4 2022; all below 0.05.
   Re-running keeps exactly 6 model nodes.
+
+### Milestone 8: `alerts.py`
+
+- Added `src/alerts.py`: on normal rows, residual fraction, trailing rolling
+  mean over `window_samples` (full window required), marks below
+  `threshold_fraction`, merges consecutive marks into periods, drops those
+  shorter than `min_duration_samples`, computes mean residual fraction and
+  lost energy (kW × interval / 60 / 1000), and writes `kt:Alert` nodes linked
+  to turbine and model.
+- Added `graph_utils.remove_alerts` so re-runs replace alerts.
+- Result: 9 alerts, 28.1 MWh lost (T01 3 / 3.0, T02 3 / 19.2, T03 0,
+  T04 2 / 5.2, T05 0, T06 1 / 0.6). Most fall in October 2022, just after
+  `train_end`.

@@ -226,6 +226,87 @@ kt:usesInput a rdf:Property ;
 @prefix unit: <http://qudt.org/vocab/unit/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
+kt:Alert_T01_001 a kt:Alert ;
+    rdfs:label "Alert 1 T01" ;
+    kt:concerns kt:T01 ;
+    kt:endTime "2022-10-06T09:30:00+00:00"^^xsd:dateTime ;
+    kt:lostEnergyMWh 1.559287317332198 ;
+    kt:meanResidualFraction -0.036804578693914985 ;
+    kt:raisedBy kt:PowerModel_T01 ;
+    kt:startTime "2022-10-05T10:50:00+00:00"^^xsd:dateTime .
+
+kt:Alert_T01_002 a kt:Alert ;
+    rdfs:label "Alert 2 T01" ;
+    kt:concerns kt:T01 ;
+    kt:endTime "2022-12-07T09:10:00+00:00"^^xsd:dateTime ;
+    kt:lostEnergyMWh 0.9179323874899162 ;
+    kt:meanResidualFraction -0.04553612505117401 ;
+    kt:raisedBy kt:PowerModel_T01 ;
+    kt:startTime "2022-12-06T23:10:00+00:00"^^xsd:dateTime .
+
+kt:Alert_T01_003 a kt:Alert ;
+    rdfs:label "Alert 3 T01" ;
+    kt:concerns kt:T01 ;
+    kt:endTime "2022-12-16T20:30:00+00:00"^^xsd:dateTime ;
+    kt:lostEnergyMWh 0.5263322982595418 ;
+    kt:meanResidualFraction -0.01656435242358904 ;
+    kt:raisedBy kt:PowerModel_T01 ;
+    kt:startTime "2022-12-16T03:20:00+00:00"^^xsd:dateTime .
+
+kt:Alert_T02_001 a kt:Alert ;
+    rdfs:label "Alert 1 T02" ;
+    kt:concerns kt:T02 ;
+    kt:endTime "2022-10-08T14:10:00+00:00"^^xsd:dateTime ;
+    kt:lostEnergyMWh 13.339819944719176 ;
+    kt:meanResidualFraction -0.0825441341394473 ;
+    kt:raisedBy kt:PowerModel_T02 ;
+    kt:startTime "2022-10-04T19:50:00+00:00"^^xsd:dateTime .
+
+kt:Alert_T02_002 a kt:Alert ;
+    rdfs:label "Alert 2 T02" ;
+    kt:concerns kt:T02 ;
+    kt:endTime "2022-10-10T04:00:00+00:00"^^xsd:dateTime ;
+    kt:lostEnergyMWh 1.2316741230204968 ;
+    kt:meanResidualFraction -0.03641313002277891 ;
+    kt:raisedBy kt:PowerModel_T02 ;
+    kt:startTime "2022-10-09T11:40:00+00:00"^^xsd:dateTime .
+
+kt:Alert_T02_003 a kt:Alert ;
+    rdfs:label "Alert 3 T02" ;
+    kt:concerns kt:T02 ;
+    kt:endTime "2022-10-13T08:30:00+00:00"^^xsd:dateTime ;
+    kt:lostEnergyMWh 4.635822331405846 ;
+    kt:meanResidualFraction -0.05259015690761029 ;
+    kt:raisedBy kt:PowerModel_T02 ;
+    kt:startTime "2022-10-11T03:00:00+00:00"^^xsd:dateTime .
+
+kt:Alert_T04_001 a kt:Alert ;
+    rdfs:label "Alert 1 T04" ;
+    kt:concerns kt:T04 ;
+    kt:endTime "2022-02-04T08:20:00+00:00"^^xsd:dateTime ;
+    kt:lostEnergyMWh 2.435715122793077 ;
+    kt:meanResidualFraction -0.04985260357072647 ;
+    kt:raisedBy kt:PowerModel_T04 ;
+    kt:startTime "2022-02-03T08:40:00+00:00"^^xsd:dateTime .
+
+kt:Alert_T04_002 a kt:Alert ;
+    rdfs:label "Alert 2 T04" ;
+    kt:concerns kt:T04 ;
+    kt:endTime "2022-10-06T08:30:00+00:00"^^xsd:dateTime ;
+    kt:lostEnergyMWh 2.769528387110296 ;
+    kt:meanResidualFraction -0.054402260018535833 ;
+    kt:raisedBy kt:PowerModel_T04 ;
+    kt:startTime "2022-10-05T05:50:00+00:00"^^xsd:dateTime .
+
+kt:Alert_T06_001 a kt:Alert ;
+    rdfs:label "Alert 1 T06" ;
+    kt:concerns kt:T06 ;
+    kt:endTime "2022-10-06T00:20:00+00:00"^^xsd:dateTime ;
+    kt:lostEnergyMWh 0.6413660178869218 ;
+    kt:meanResidualFraction -0.023174923862219397 ;
+    kt:raisedBy kt:PowerModel_T06 ;
+    kt:startTime "2022-10-05T10:10:00+00:00"^^xsd:dateTime .
+
 kt:Kelmarsh a kt:WindFarm ;
     rdfs:label "Kelmarsh" ;
     kt:hasTurbine kt:T01,
@@ -234,30 +315,6 @@ kt:Kelmarsh a kt:WindFarm ;
         kt:T04,
         kt:T05,
         kt:T06 .
-
-kt:PowerModel_T01 a prov:Entity,
-        kt:PowerModel ;
-    rdfs:label "Power model T01" ;
-    prov:generatedAtTime "2026-11-12T00:25:42.442974+00:00"^^xsd:dateTime ;
-    kt:forTurbine kt:T01 ;
-    kt:maeKW 71.5630854952287 ;
-    kt:nmae 0.03490882219279449 ;
-    kt:target kt:T01_power ;
-    kt:usesInput kt:T01_ambient_temp,
-        kt:T01_wind_direction,
-        kt:T01_wind_speed .
-
-kt:PowerModel_T02 a prov:Entity,
-        kt:PowerModel ;
-    rdfs:label "Power model T02" ;
-    prov:generatedAtTime "2026-11-12T00:25:43.670836+00:00"^^xsd:dateTime ;
-    kt:forTurbine kt:T02 ;
-    kt:maeKW 80.33368217304239 ;
-    kt:nmae 0.039187162035630434 ;
-    kt:target kt:T02_power ;
-    kt:usesInput kt:T02_ambient_temp,
-        kt:T02_wind_direction,
-        kt:T02_wind_speed .
 
 kt:PowerModel_T03 a prov:Entity,
         kt:PowerModel ;
@@ -270,18 +327,6 @@ kt:PowerModel_T03 a prov:Entity,
     kt:usesInput kt:T03_ambient_temp,
         kt:T03_wind_direction,
         kt:T03_wind_speed .
-
-kt:PowerModel_T04 a prov:Entity,
-        kt:PowerModel ;
-    rdfs:label "Power model T04" ;
-    prov:generatedAtTime "2026-11-12T00:25:46.186501+00:00"^^xsd:dateTime ;
-    kt:forTurbine kt:T04 ;
-    kt:maeKW 62.97225264811127 ;
-    kt:nmae 0.030718172023468913 ;
-    kt:target kt:T04_power ;
-    kt:usesInput kt:T04_ambient_temp,
-        kt:T04_wind_direction,
-        kt:T04_wind_speed .
 
 kt:PowerModel_T05 a prov:Entity,
         kt:PowerModel ;
@@ -505,24 +550,17 @@ kt:T06_rotor_speed a sosa:Sensor ;
     kt:signalKey "rotor_speed" ;
     kt:storedIn "data/processed/scada_T06.parquet" .
 
-kt:T01 a kt:Turbine ;
-    rdfs:label "Kelmarsh 1" ;
-    geo:lat 52.400604 ;
-    geo:long -0.947133 ;
-    kt:hasComponent kt:T01_Generator,
-        kt:T01_Nacelle,
-        kt:T01_Rotor ;
-    kt:hasSensor kt:T01_ambient_temp,
-        kt:T01_nacelle_direction,
-        kt:T01_pitch,
-        kt:T01_power,
-        kt:T01_rotor_speed,
-        kt:T01_wind_direction,
-        kt:T01_wind_speed ;
-    kt:hubHeightM 78.5 ;
-    kt:ratedPowerKW 2050.0 ;
-    kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T01" .
+kt:PowerModel_T04 a prov:Entity,
+        kt:PowerModel ;
+    rdfs:label "Power model T04" ;
+    prov:generatedAtTime "2026-11-12T00:25:46.186501+00:00"^^xsd:dateTime ;
+    kt:forTurbine kt:T04 ;
+    kt:maeKW 62.97225264811127 ;
+    kt:nmae 0.030718172023468913 ;
+    kt:target kt:T04_power ;
+    kt:usesInput kt:T04_ambient_temp,
+        kt:T04_wind_direction,
+        kt:T04_wind_speed .
 
 kt:T01_Generator a kt:Generator ;
     rdfs:label "Generator T01" .
@@ -570,25 +608,6 @@ kt:T01_wind_speed a sosa:Sensor ;
     kt:scadaColumn "Wind speed (m/s)" ;
     kt:signalKey "wind_speed" ;
     kt:storedIn "data/processed/scada_T01.parquet" .
-
-kt:T02 a kt:Turbine ;
-    rdfs:label "Kelmarsh 2" ;
-    geo:lat 52.402551 ;
-    geo:long -0.949527 ;
-    kt:hasComponent kt:T02_Generator,
-        kt:T02_Nacelle,
-        kt:T02_Rotor ;
-    kt:hasSensor kt:T02_ambient_temp,
-        kt:T02_nacelle_direction,
-        kt:T02_pitch,
-        kt:T02_power,
-        kt:T02_rotor_speed,
-        kt:T02_wind_direction,
-        kt:T02_wind_speed ;
-    kt:hubHeightM 78.5 ;
-    kt:ratedPowerKW 2050.0 ;
-    kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T02" .
 
 kt:T02_Generator a kt:Generator ;
     rdfs:label "Generator T02" .
@@ -703,25 +722,6 @@ kt:T03_wind_speed a sosa:Sensor ;
     kt:signalKey "wind_speed" ;
     kt:storedIn "data/processed/scada_T03.parquet" .
 
-kt:T04 a kt:Turbine ;
-    rdfs:label "Kelmarsh 4" ;
-    geo:lat 52.398781 ;
-    geo:long -0.94115 ;
-    kt:hasComponent kt:T04_Generator,
-        kt:T04_Nacelle,
-        kt:T04_Rotor ;
-    kt:hasSensor kt:T04_ambient_temp,
-        kt:T04_nacelle_direction,
-        kt:T04_pitch,
-        kt:T04_power,
-        kt:T04_rotor_speed,
-        kt:T04_wind_direction,
-        kt:T04_wind_speed ;
-    kt:hubHeightM 78.5 ;
-    kt:ratedPowerKW 2050.0 ;
-    kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T04" .
-
 kt:T04_Generator a kt:Generator ;
     rdfs:label "Generator T04" .
 
@@ -835,25 +835,6 @@ kt:T05_wind_speed a sosa:Sensor ;
     kt:signalKey "wind_speed" ;
     kt:storedIn "data/processed/scada_T05.parquet" .
 
-kt:T06 a kt:Turbine ;
-    rdfs:label "Kelmarsh 6" ;
-    geo:lat 52.400687 ;
-    geo:long -0.936093 ;
-    kt:hasComponent kt:T06_Generator,
-        kt:T06_Nacelle,
-        kt:T06_Rotor ;
-    kt:hasSensor kt:T06_ambient_temp,
-        kt:T06_nacelle_direction,
-        kt:T06_pitch,
-        kt:T06_power,
-        kt:T06_rotor_speed,
-        kt:T06_wind_direction,
-        kt:T06_wind_speed ;
-    kt:hubHeightM 68.5 ;
-    kt:ratedPowerKW 2050.0 ;
-    kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T06" .
-
 kt:T06_Generator a kt:Generator ;
     rdfs:label "Generator T06" .
 
@@ -901,6 +882,30 @@ kt:T06_wind_speed a sosa:Sensor ;
     kt:signalKey "wind_speed" ;
     kt:storedIn "data/processed/scada_T06.parquet" .
 
+kt:PowerModel_T01 a prov:Entity,
+        kt:PowerModel ;
+    rdfs:label "Power model T01" ;
+    prov:generatedAtTime "2026-11-12T00:25:42.442974+00:00"^^xsd:dateTime ;
+    kt:forTurbine kt:T01 ;
+    kt:maeKW 71.5630854952287 ;
+    kt:nmae 0.03490882219279449 ;
+    kt:target kt:T01_power ;
+    kt:usesInput kt:T01_ambient_temp,
+        kt:T01_wind_direction,
+        kt:T01_wind_speed .
+
+kt:PowerModel_T02 a prov:Entity,
+        kt:PowerModel ;
+    rdfs:label "Power model T02" ;
+    prov:generatedAtTime "2026-11-12T00:25:43.670836+00:00"^^xsd:dateTime ;
+    kt:forTurbine kt:T02 ;
+    kt:maeKW 80.33368217304239 ;
+    kt:nmae 0.039187162035630434 ;
+    kt:target kt:T02_power ;
+    kt:usesInput kt:T02_ambient_temp,
+        kt:T02_wind_direction,
+        kt:T02_wind_speed .
+
 kt:T01_Rotor a kt:Rotor ;
     rdfs:label "Rotor T01" .
 
@@ -916,11 +921,87 @@ kt:T04_Rotor a kt:Rotor ;
 kt:T05_Rotor a kt:Rotor ;
     rdfs:label "Rotor T05" .
 
+kt:T06 a kt:Turbine ;
+    rdfs:label "Kelmarsh 6" ;
+    geo:lat 52.400687 ;
+    geo:long -0.936093 ;
+    kt:hasComponent kt:T06_Generator,
+        kt:T06_Nacelle,
+        kt:T06_Rotor ;
+    kt:hasSensor kt:T06_ambient_temp,
+        kt:T06_nacelle_direction,
+        kt:T06_pitch,
+        kt:T06_power,
+        kt:T06_rotor_speed,
+        kt:T06_wind_direction,
+        kt:T06_wind_speed ;
+    kt:hubHeightM 68.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T06" .
+
 kt:T06_Rotor a kt:Rotor ;
     rdfs:label "Rotor T06" .
 
+kt:T04 a kt:Turbine ;
+    rdfs:label "Kelmarsh 4" ;
+    geo:lat 52.398781 ;
+    geo:long -0.94115 ;
+    kt:hasComponent kt:T04_Generator,
+        kt:T04_Nacelle,
+        kt:T04_Rotor ;
+    kt:hasSensor kt:T04_ambient_temp,
+        kt:T04_nacelle_direction,
+        kt:T04_pitch,
+        kt:T04_power,
+        kt:T04_rotor_speed,
+        kt:T04_wind_direction,
+        kt:T04_wind_speed ;
+    kt:hubHeightM 78.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T04" .
+
+kt:T01 a kt:Turbine ;
+    rdfs:label "Kelmarsh 1" ;
+    geo:lat 52.400604 ;
+    geo:long -0.947133 ;
+    kt:hasComponent kt:T01_Generator,
+        kt:T01_Nacelle,
+        kt:T01_Rotor ;
+    kt:hasSensor kt:T01_ambient_temp,
+        kt:T01_nacelle_direction,
+        kt:T01_pitch,
+        kt:T01_power,
+        kt:T01_rotor_speed,
+        kt:T01_wind_direction,
+        kt:T01_wind_speed ;
+    kt:hubHeightM 78.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T01" .
+
 kt:T01_Nacelle a kt:Nacelle ;
     rdfs:label "Nacelle T01" .
+
+kt:T02 a kt:Turbine ;
+    rdfs:label "Kelmarsh 2" ;
+    geo:lat 52.402551 ;
+    geo:long -0.949527 ;
+    kt:hasComponent kt:T02_Generator,
+        kt:T02_Nacelle,
+        kt:T02_Rotor ;
+    kt:hasSensor kt:T02_ambient_temp,
+        kt:T02_nacelle_direction,
+        kt:T02_pitch,
+        kt:T02_power,
+        kt:T02_rotor_speed,
+        kt:T02_wind_direction,
+        kt:T02_wind_speed ;
+    kt:hubHeightM 78.5 ;
+    kt:ratedPowerKW 2050.0 ;
+    kt:rotorDiameterM 92.0 ;
+    kt:turbineId "T02" .
 
 kt:T02_Nacelle a kt:Nacelle ;
     rdfs:label "Nacelle T02" .

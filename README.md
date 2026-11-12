@@ -89,3 +89,10 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   `n_estimators=300`; it only silences LightGBM's console output.
 - `graph_utils.get_model_target` (SPARQL) was added so `train.py` reads the
   target signal from the graph, like the inputs.
+- The alert rolling window runs over the sequence of normal rows, not over
+  clock time, so a 144-sample window may span more than 24 hours when rows
+  were excluded. An alert period runs from the first to the last marked
+  sample; its mean residual fraction is the mean over the marked samples, so
+  it can be above the threshold, which applies to the trailing rolling mean.
+- `alerts.py` removes a turbine's existing alerts (`graph_utils.remove_alerts`)
+  before adding new ones, so re-running it does not duplicate alerts.

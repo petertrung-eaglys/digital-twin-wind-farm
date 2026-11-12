@@ -251,6 +251,14 @@ def add_model(
     return model
 
 
+def remove_alerts(g: Graph, turbine_id: str) -> int:
+    """Remove all alerts of a turbine; return how many were removed."""
+    alerts = get_alerts(g, turbine_id)["alert"]
+    for alert in alerts:
+        g.remove((URIRef(alert), None, None))
+    return len(alerts)
+
+
 def add_alert(
     g: Graph,
     turbine_id: str,
