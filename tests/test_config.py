@@ -48,3 +48,7 @@ def test_shipped_config_has_all_sections() -> None:
 
 def test_shipped_config_names_the_timestamp_column() -> None:
     assert load_config()["scada"]["timestamp_column"] == "Date and time"
+
+
+def test_shipped_config_uses_satellite_map() -> None:
+    assert load_config()["dashboard"]["map_style"] == "satellite"

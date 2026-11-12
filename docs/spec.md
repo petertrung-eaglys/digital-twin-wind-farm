@@ -502,3 +502,11 @@ Each target calls its script through uv, for example `uv run python -m src.downl
   lineage graph, schema graph, the SPARQL queries). No new dependency
   (`st.graphviz_chart`).
 - Graph now 1,134 triples: 11 classes, 40 properties, 9 source files.
+
+### Change: satellite base map
+
+- `config.yaml` gained `dashboard.map_style` (default `satellite`, plotly's
+  Esri World Imagery style, no token needed); `status_map` takes the style
+  as a parameter and draws white turbine labels for contrast.
+- Tests: config default and an `AppTest` check that the rendered map uses
+  the configured style.

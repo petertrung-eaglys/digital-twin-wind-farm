@@ -85,7 +85,9 @@ def set_playing(playing: bool) -> None:
     st.session_state.playing = playing
 
 
-def status_map(turbines: pd.DataFrame, statuses: dict[str, str]) -> go.Figure:
+def status_map(
+    turbines: pd.DataFrame, statuses: dict[str, str], map_style: str
+) -> go.Figure:
     """Map of the turbines coloured by their current status."""
     data = turbines.assign(status=turbines["turbine_id"].map(statuses))
     fig = px.scatter_map(
@@ -100,9 +102,13 @@ def status_map(turbines: pd.DataFrame, statuses: dict[str, str]) -> go.Figure:
         center=db.map_center(turbines),
         zoom=13.5,
         height=320,
-        map_style="carto-positron",
+        map_style=map_style,
     )
-    fig.update_traces(marker={"size": 18}, textposition="top right")
+    fig.update_traces(
+        marker={"size": 18},
+        textposition="top right",
+        textfont={"color": "white", "size": 14},
+    )
     fig.update_layout(margin={"l": 0, "r": 0, "t": 0, "b": 0})
     return fig
 
@@ -174,10 +180,11 @@ def render_replay(
     statuses: dict[str, str],
     turbine_id: str,
     ts: pd.Timestamp,
+    map_style: str,
 ) -> None:
     """The replay tab: map, KPIs, charts, alerts and the sensors query."""
     turbines, sensors = structure["turbines"], structure["sensors"]
-    st.plotly_chart(status_map(turbines, statuses), width="stretch")
+    st.plotly_chart(status_map(turbines, statuses, map_style), width="stretch")
 
     turbine = turbines.set_index("turbine_id").loc[turbine_id]
     frame, turbine_alerts = frames[turbine_id], alerts_by[turbine_id]
@@ -306,7 +313,15 @@ def main() -> None:
     st.caption(f"Replay time: {ts:%Y-%m-%d %H:%M} UTC")
     replay_tab, ontology_tab = st.tabs(["Replay", "Ontology & lineage"])
     with replay_tab:
-        render_replay(structure, frames, alerts_by, statuses, turbine_id, ts)
+        render_replay(
+            structure,
+            frames,
+            alerts_by,
+            statuses,
+            turbine_id,
+            ts,
+            config["dashboard"]["map_style"],
+        )
     with ontology_tab:
         render_ontology(
             config["paths"]["ontology"], turbine_id, alerts_by[turbine_id], ts

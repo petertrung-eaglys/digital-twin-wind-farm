@@ -94,3 +94,12 @@ def test_sensor_filter_narrows_lineage() -> None:
     lineage = app.get("graphviz_chart")[0].proto.spec
 
     assert ("power T01" in lineage, "rotor_speed T01" in lineage) == (True, False)
+
+
+def test_status_map_uses_configured_style() -> None:
+    app = run_app()
+    status_map = json.loads(app.get("plotly_chart")[0].proto.spec)
+
+    assert (
+        status_map["layout"]["map"]["style"] == load_config()["dashboard"]["map_style"]
+    )

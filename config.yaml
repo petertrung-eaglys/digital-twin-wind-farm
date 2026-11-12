@@ -52,3 +52,7 @@ alerts:
   window_samples: 144          # 24 hours of 10-minute data
   threshold_fraction: -0.05    # mean residual below -5% of rated power
   min_duration_samples: 36     # 6 hours
+dashboard:
+  # plotly map style: "satellite" = Esri World Imagery (no token needed);
+  # alternatives: "satellite-streets", "carto-positron", "open-street-map"
+  map_style: satellite

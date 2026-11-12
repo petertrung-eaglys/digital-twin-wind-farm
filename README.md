@@ -202,3 +202,7 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   CSV. Dataset metadata lives in `config.yaml` (`dataset`). Turbines derive
   from the static CSV; sensors from their raw SCADA file and, where matched,
   the mapping CSV; raw files are part of the zip, which is part of the dataset.
+- The status map uses satellite imagery (`dashboard.map_style: satellite` in
+  `config.yaml`): plotly's built-in style backed by Esri World Imagery, which
+  needs no API token; the imagery attribution is shown on the map. Set it to
+  `carto-positron` or `open-street-map` for a street map.
