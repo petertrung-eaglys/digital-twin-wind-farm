@@ -394,3 +394,14 @@ Each target calls its script through uv, for example `uv run python -m src.downl
   (`scada_format.turbine_id_from_filename`, `format_turbine_id`).
 - `config.yaml` gained `scada.timestamp_column`.
 - Result: 6 files, 52,560 rows each; missing values 0.1–1.1 % per signal.
+
+### Milestone 5: `clean.py`
+
+- Added `src/clean.py`: `normal_mask` implements the four §7.4 rules,
+  `air_density` uses the ideal gas law with dry-air R = 287.05 J/(kg K) and
+  `cleaning.standard_pressure_pa`; both columns are written back into each
+  Parquet file, and `models/power_curve_<turbine_id>.png` is saved.
+- `config.yaml` gained `model.inputs` / `model.target`, used for the
+  completeness rule now and for the ontology's model inputs later.
+- Result: 74.1–80.8 % normal rows per turbine. Known limitation: a derating
+  plateau near 1,650 kW above rated wind stays normal (README).

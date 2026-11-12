@@ -36,6 +36,11 @@ cleaning:
   min_power_kw: 0.0
   rated_wind_speed: 12.0       # MM92 rated wind speed, used for the pitch rule
   standard_pressure_pa: 101325.0
+model:
+  # Sensor signals the power model reads; air_density and the sin/cos of
+  # wind direction are derived from them.
+  inputs: [wind_speed, wind_direction, ambient_temp]
+  target: power
 train_test_split:
   train_end: "2022-09-30 23:50"
 alerts:

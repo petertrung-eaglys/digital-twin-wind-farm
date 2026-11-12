@@ -36,6 +36,14 @@ make test         # uv run pytest
 make lint         # uv run ruff check .
 ```
 
+## Known limitations
+
+- One year (2022) only.
+- Simple cleaning rules (spec §7.4): a derating plateau at about 1,650 kW above
+  rated wind speed is not removed, because the pitch rule only applies below
+  rated wind speed.
+- No validation of alerts against the status/event logs.
+
 ## Attribution
 
 Kelmarsh wind farm data by Cubico Sustainable Investments Ltd, licensed under
@@ -58,3 +66,7 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
 - The mapping CSV's `Greenbyte Title` is the column name without the unit
   suffix (e.g. `Ambient temperature (converter)`), so signals are matched to
   it by stripping the unit.
+- `config.yaml` gained a `model` section (`inputs: [wind_speed,
+  wind_direction, ambient_temp]`, `target: power`). The model's sensor inputs
+  are these three signals; `air_density` and the sin/cos of wind direction
+  are derived from them, so they are not sensors in the graph.
