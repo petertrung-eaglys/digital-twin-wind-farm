@@ -1,5 +1,8 @@
 """Tests for the ontology builder, checked through SPARQL helpers."""
 
+from datetime import date
+from pathlib import Path
+
 import pandas as pd
 import pytest
 from rdflib import RDF, RDFS, Graph, Literal
@@ -8,10 +11,21 @@ from src.build_ontology import (
     add_schema,
     mapping_entry,
     strip_unit,
+    turbine_files_in,
     turbine_id_from_title,
     turbines_from_static,
 )
-from src.graph_utils import KT, get_model_inputs, get_sensors, get_turbines, new_graph
+from src.graph_utils import (
+    DATASET_IRI,
+    KT,
+    PROV,
+    get_model_inputs,
+    get_sensors,
+    get_turbines,
+    new_graph,
+    source_iri,
+    turbine_iri,
+)
 from src.graph_utils import sensor_iri as sensor
 
 
@@ -115,3 +129,60 @@ def test_model_inputs_come_from_config(graph: Graph) -> None:
         "wind_direction",
         "wind_speed",
     ]
+
+
+def test_turbine_specs_traced_to_static_file(graph: Graph) -> None:
+    sources = set(graph.objects(turbine_iri("T01"), PROV.wasDerivedFrom))
+
+    assert sources == {source_iri("Kelmarsh_WT_static.csv")}
+
+
+def test_sensor_readings_traced_to_raw_file_and_mapping(graph: Graph) -> None:
+    raw = source_iri("Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229.csv")
+    mapping_csv = source_iri("Kelmarsh_WT_dataSignalMapping.csv")
+
+    assert [
+        set(graph.objects(sensor("T02", key), PROV.wasDerivedFrom))
+        for key in ("power", "rotor_speed")
+    ] == [{raw, mapping_csv}, {raw}]
+
+
+def test_raw_file_chain_reaches_dataset(graph: Graph) -> None:
+    raw = source_iri("Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228.csv")
+    archive = graph.value(raw, KT.partOf)
+
+    assert (
+        archive,
+        graph.value(archive, KT.partOf),
+        str(graph.value(DATASET_IRI, KT.doi)),
+    ) == (
+        source_iri("Kelmarsh_SCADA_2022_4457.zip"),
+        DATASET_IRI,
+        "10.5281/zenodo.16807551",
+    )
+
+
+def test_downloaded_files_record_url_and_md5(graph: Graph) -> None:
+    static_csv = source_iri("Kelmarsh_WT_static.csv")
+
+    assert (
+        str(graph.value(static_csv, KT.downloadUrl)),
+        str(graph.value(static_csv, KT.md5)),
+    ) == ("https://zenodo.org/Kelmarsh_WT_static.csv", "0" * 32)
+
+
+def test_turbine_has_machine_specs_from_static(graph: Graph) -> None:
+    node = turbine_iri("T01")
+
+    assert (
+        str(graph.value(node, KT.manufacturer)),
+        str(graph.value(node, KT.turbineModel)),
+        graph.value(node, KT.commissioningDate).toPython(),
+    ) == ("Senvion", "MM92", date(2016, 4, 15))
+
+
+def test_turbine_files_in_maps_ids_to_file_names(tmp_path: Path) -> None:
+    for name in ("Turbine_Data_Kelmarsh_2_x.csv", "Status_Kelmarsh_2_x.csv"):
+        (tmp_path / name).write_text("")
+
+    assert turbine_files_in(tmp_path) == {"T02": "Turbine_Data_Kelmarsh_2_x.csv"}

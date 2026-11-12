@@ -1,14 +1,16 @@
-"""Build the Kelmarsh RDF graph (schema + farm, turbines, sensors, models)."""
+"""Build the Kelmarsh RDF graph (schema, sources, farm, turbines, sensors, models)."""
 
 import logging
 import re
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from rdflib import RDF, RDFS, Graph, Literal, URIRef
+from rdflib import RDF, RDFS, XSD, Graph, Literal, URIRef
 
 from src.config import load_config
 from src.graph_utils import (
+    DATASET_IRI,
     GEO,
     KT,
     PROV,
@@ -21,9 +23,10 @@ from src.graph_utils import (
     new_graph,
     save_graph,
     sensor_iri,
+    source_iri,
     turbine_iri,
 )
-from src.scada_format import format_turbine_id
+from src.scada_format import format_turbine_id, turbine_id_from_filename
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,8 @@ MAPPING_FILE = "Kelmarsh_WT_dataSignalMapping.csv"
 UNIT_SUFFIX = re.compile(r"\s*\([^()]*\)$")
 TURBINE_NUMBER_IN_TITLE = re.compile(r"(\d+)$")
 COMPONENTS = ["Rotor", "Generator", "Nacelle"]
+TURBINE_FILE_GLOB = "Turbine_Data_*.csv"
+STATIC_DATE_FORMAT = "%d/%m/%Y"
 
 # signal key -> (component, observable property, QUDT unit)
 SIGNAL_SEMANTICS: dict[str, tuple[str, str, URIRef]] = {
@@ -60,6 +65,18 @@ CLASSES: list[tuple[URIRef, URIRef | None, str, str]] = [
         "A trained model that predicts turbine power.",
     ),
     (KT.Alert, None, "Alert", "An underperformance alert period."),
+    (
+        KT.Dataset,
+        PROV.Entity,
+        "Dataset",
+        "The published dataset all raw files come from.",
+    ),
+    (
+        KT.SourceFile,
+        PROV.Entity,
+        "Source file",
+        "A raw file of the dataset that graph facts or readings come from.",
+    ),
 ]
 
 # (property, domain, range, label, comment)
@@ -140,6 +157,42 @@ PROPERTIES: list[tuple[URIRef, URIRef, URIRef, str, str]] = [
         "lost energy (MWh)",
         "Sum of expected minus actual energy in the period.",
     ),
+    (KT.manufacturer, KT.Turbine, RDFS.Literal, "manufacturer", "Maker."),
+    (KT.turbineModel, KT.Turbine, RDFS.Literal, "turbine model", "Model name."),
+    (
+        KT.commissioningDate,
+        KT.Turbine,
+        RDFS.Literal,
+        "commissioning date",
+        "Commercial operations date.",
+    ),
+    (
+        KT.modelFile,
+        KT.PowerModel,
+        RDFS.Literal,
+        "model file",
+        "Path of the saved LightGBM model.",
+    ),
+    (
+        PROV.wasDerivedFrom,
+        PROV.Entity,
+        PROV.Entity,
+        "was derived from",
+        "The source file a turbine's specs or a sensor's readings come from.",
+    ),
+    (
+        KT.partOf,
+        KT.SourceFile,
+        PROV.Entity,
+        "part of",
+        "The archive or dataset that contains the file.",
+    ),
+    (KT.fileName, KT.SourceFile, RDFS.Literal, "file name", "Raw file name."),
+    (KT.downloadUrl, KT.SourceFile, RDFS.Literal, "download URL", "Zenodo URL."),
+    (KT.md5, KT.SourceFile, RDFS.Literal, "MD5", "Checksum of the file."),
+    (KT.doi, KT.Dataset, RDFS.Literal, "DOI", "Digital object identifier."),
+    (KT.publisher, KT.Dataset, RDFS.Literal, "publisher", "Data owner."),
+    (KT.license, KT.Dataset, RDFS.Literal, "license", "Dataset license."),
 ]
 
 
@@ -184,6 +237,11 @@ def turbines_from_static(static: pd.DataFrame) -> list[dict]:
             "rated_power_kw": row["Rated power (kW)"],
             "rotor_diameter_m": row["Rotor Diameter (m)"],
             "hub_height_m": row["Hub Height (m)"],
+            "manufacturer": row["Manufacturer"],
+            "model": row["Model"],
+            "commissioned": datetime.strptime(
+                row["Commercial Operations Date"], STATIC_DATE_FORMAT
+            ).date(),
         }
         for _, row in static.iterrows()
     ]
@@ -195,8 +253,44 @@ def mapping_entry(mapping: pd.DataFrame, column: str) -> dict | None:
     return None if hits.empty else hits.iloc[0].to_dict()
 
 
+def add_dataset(g: Graph, dataset: dict) -> None:
+    """Add the published dataset node."""
+    g.add((DATASET_IRI, RDF.type, KT.Dataset))
+    g.add((DATASET_IRI, RDF.type, PROV.Entity))
+    g.add((DATASET_IRI, RDFS.label, Literal(dataset["title"])))
+    g.add((DATASET_IRI, KT.doi, Literal(dataset["doi"])))
+    g.add((DATASET_IRI, KT.publisher, Literal(dataset["publisher"])))
+    g.add((DATASET_IRI, KT.license, Literal(dataset["license"])))
+
+
+def add_source_file(g: Graph, name: str, part_of: URIRef, **details: str) -> URIRef:
+    """Add a raw source file (optional download URL and MD5) and its container."""
+    node = source_iri(name)
+    g.add((node, RDF.type, KT.SourceFile))
+    g.add((node, RDF.type, PROV.Entity))
+    g.add((node, RDFS.label, Literal(name)))
+    g.add((node, KT.fileName, Literal(name)))
+    g.add((node, KT.partOf, part_of))
+    for key, prop in [("url", KT.downloadUrl), ("md5", KT.md5)]:
+        if key in details:
+            g.add((node, prop, Literal(details[key])))
+    return node
+
+
+def add_sources(g: Graph, config: dict, turbine_files: dict[str, str]) -> None:
+    """Add the dataset, the downloaded files and the per-turbine SCADA files."""
+    add_dataset(g, config["dataset"])
+    for f in config["downloads"]["files"]:
+        add_source_file(g, f["name"], DATASET_IRI, url=f["url"], md5=f["md5"])
+    archive = next(
+        f["name"] for f in config["downloads"]["files"] if f["name"].endswith(".zip")
+    )
+    for name in turbine_files.values():
+        add_source_file(g, name, source_iri(archive))
+
+
 def add_turbine(g: Graph, farm: URIRef, turbine: dict) -> None:
-    """Add a turbine with its properties and components."""
+    """Add a turbine with its specs, their source and its components."""
     tid = turbine["turbine_id"]
     node = turbine_iri(tid)
     g.add((farm, KT.hasTurbine, node))
@@ -208,6 +302,16 @@ def add_turbine(g: Graph, farm: URIRef, turbine: dict) -> None:
     g.add((node, KT.ratedPowerKW, decimal(turbine["rated_power_kw"])))
     g.add((node, KT.rotorDiameterM, decimal(turbine["rotor_diameter_m"])))
     g.add((node, KT.hubHeightM, decimal(turbine["hub_height_m"])))
+    g.add((node, KT.manufacturer, Literal(turbine["manufacturer"])))
+    g.add((node, KT.turbineModel, Literal(turbine["model"])))
+    g.add(
+        (
+            node,
+            KT.commissioningDate,
+            Literal(turbine["commissioned"], datatype=XSD.date),
+        )
+    )
+    g.add((node, PROV.wasDerivedFrom, source_iri(STATIC_FILE)))
     for component in COMPONENTS:
         part = component_iri(tid, component)
         g.add((node, KT.hasComponent, part))
@@ -222,8 +326,9 @@ def add_sensor(
     column: str,
     parquet_path: str,
     mapping: pd.DataFrame,
+    raw_file: str,
 ) -> None:
-    """Add one sensor of a turbine, attached to its component."""
+    """Add one sensor of a turbine, attached to its component, with sources."""
     component, observable, unit = SIGNAL_SEMANTICS[key]
     sensor = sensor_iri(turbine_id, key)
     g.add((turbine_iri(turbine_id), KT.hasSensor, sensor))
@@ -235,8 +340,10 @@ def add_sensor(
     g.add((sensor, KT.signalKey, Literal(key)))
     g.add((sensor, KT.scadaColumn, Literal(column)))
     g.add((sensor, KT.storedIn, Literal(parquet_path)))
+    g.add((sensor, PROV.wasDerivedFrom, source_iri(raw_file)))
     entry = mapping_entry(mapping, column)
     if entry is not None:
+        g.add((sensor, PROV.wasDerivedFrom, source_iri(MAPPING_FILE)))
         g.add((sensor, KT.manufacturerTitle, Literal(entry["Manufacturer Title"])))
         g.add(
             (sensor, KT.greenbyteSignalId, Literal(int(entry["Greenbyte Signal ID"])))
@@ -250,11 +357,25 @@ def add_observable_properties(g: Graph) -> None:
         g.add((KT[observable], RDFS.label, Literal(observable)))
 
 
-def build_graph(static: pd.DataFrame, mapping: pd.DataFrame, config: dict) -> Graph:
+def turbine_files_in(scada_dir: Path) -> dict[str, str]:
+    """Map turbine id to its raw SCADA file name."""
+    return {
+        turbine_id_from_filename(p.name): p.name
+        for p in sorted(scada_dir.glob(TURBINE_FILE_GLOB))
+    }
+
+
+def build_graph(
+    static: pd.DataFrame,
+    mapping: pd.DataFrame,
+    config: dict,
+    turbine_files: dict[str, str],
+) -> Graph:
     """Build the full graph from the static and mapping tables and the config."""
     g = new_graph()
     add_schema(g)
     add_observable_properties(g)
+    add_sources(g, config, turbine_files)
     processed = Path(config["paths"]["processed"])
     for turbine in turbines_from_static(static):
         farm = KT[turbine["farm"]]
@@ -264,7 +385,7 @@ def build_graph(static: pd.DataFrame, mapping: pd.DataFrame, config: dict) -> Gr
         tid = turbine["turbine_id"]
         parquet = str(processed / f"scada_{tid}.parquet")
         for key, column in config["signals"].items():
-            add_sensor(g, tid, key, column, parquet, mapping)
+            add_sensor(g, tid, key, column, parquet, mapping, turbine_files[tid])
         add_model(g, tid, config["model"]["inputs"], config["model"]["target"])
     return g
 
@@ -276,7 +397,8 @@ def main() -> None:
     raw = Path(config["paths"]["raw"])
     static = pd.read_csv(raw / STATIC_FILE, encoding="utf-8-sig")
     mapping = pd.read_csv(raw / MAPPING_FILE, encoding="utf-8-sig")
-    g = build_graph(static, mapping, config)
+    turbine_files = turbine_files_in(raw / config["downloads"]["scada_dir"])
+    g = build_graph(static, mapping, config, turbine_files)
     save_graph(g, config["paths"]["ontology"])
     logger.info("Wrote %d triples to %s", len(g), config["paths"]["ontology"])
 

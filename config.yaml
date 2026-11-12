@@ -4,6 +4,11 @@ paths:
   processed: data/processed
   ontology: ontology/kelmarsh.ttl
   models: models
+dataset:
+  title: "Kelmarsh wind farm data"
+  doi: "10.5281/zenodo.16807551"
+  publisher: "Cubico Sustainable Investments Ltd"
+  license: "CC-BY-4.0"
 downloads:
   scada_dir: scada_2022
   files:

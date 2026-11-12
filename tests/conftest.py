@@ -15,8 +15,31 @@ SIGNALS = {
     "pitch": "Blade angle (pitch position) A (°)",
     "rotor_speed": "Rotor speed (RPM)",
 }
+DOWNLOADS = {
+    "scada_dir": "scada_2022",
+    "files": [
+        {"name": n, "url": f"https://zenodo.org/{n}", "md5": "0" * 32}
+        for n in (
+            "Kelmarsh_WT_static.csv",
+            "Kelmarsh_WT_dataSignalMapping.csv",
+            "Kelmarsh_SCADA_2022_4457.zip",
+        )
+    ],
+}
+DATASET = {
+    "title": "Kelmarsh wind farm data",
+    "doi": "10.5281/zenodo.16807551",
+    "publisher": "Cubico Sustainable Investments Ltd",
+    "license": "CC-BY-4.0",
+}
+TURBINE_FILES = {
+    "T01": "Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228.csv",
+    "T02": "Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229.csv",
+}
 CONFIG = {
     "paths": {"processed": "data/processed"},
+    "dataset": DATASET,
+    "downloads": DOWNLOADS,
     "signals": SIGNALS,
     "model": {
         "inputs": ["wind_speed", "wind_direction", "ambient_temp"],
@@ -34,6 +57,9 @@ def static_row(number: int, lat: float, hub: float) -> dict:
         "Rotor Diameter (m)": 92,
         "Latitude": lat,
         "Longitude": -0.94,
+        "Manufacturer": "Senvion",
+        "Model": "MM92",
+        "Commercial Operations Date": "15/04/2016",
     }
 
 
@@ -65,4 +91,4 @@ def mapping() -> pd.DataFrame:
 
 @pytest.fixture
 def graph(static: pd.DataFrame, mapping: pd.DataFrame) -> Graph:
-    return build_graph(static, mapping, CONFIG)
+    return build_graph(static, mapping, CONFIG, TURBINE_FILES)

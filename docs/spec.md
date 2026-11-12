@@ -486,3 +486,19 @@ Each target calls its script through uv, for example `uv run python -m src.downl
   `dashboard.map_center` (mean turbine position) and pass it as `center`.
 - Tests: unit test for `map_center`, and an `AppTest` check that the rendered
   map spec is centred on Kelmarsh (both failed before the fix).
+
+### Feature: ontology & lineage tab
+
+- Graph gains provenance: `kt:Dataset`, `kt:SourceFile`,
+  `prov:wasDerivedFrom` (turbine → static CSV; sensor → raw SCADA file and
+  mapping CSV), `kt:partOf` (raw file → zip → dataset), file URL/MD5, DOI,
+  publisher, license, model file, and turbine manufacturer, model and
+  commissioning date. `config.yaml` gained `dataset`.
+- `graph_utils`: `get_lineage` and `get_schema` (SPARQL), `source_iri`,
+  `DATASET_IRI`, `add_model(model_file=...)`.
+- New `src/ontology_view.py` renders lineage and schema as Graphviz DOT;
+  `dashboard.active_alerts` marks alerts inside the replay time.
+- `app/app.py` now has tabs "Replay" and "Ontology & lineage" (sensor filter,
+  lineage graph, schema graph, the SPARQL queries). No new dependency
+  (`st.graphviz_chart`).
+- Graph now 1,134 triples: 11 classes, 40 properties, 9 source files.

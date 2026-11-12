@@ -3,6 +3,7 @@
 Lookups use SPARQL so that structure comes from the graph, not from config.
 """
 
+import re
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
@@ -24,6 +25,7 @@ PREFIXES = {
     "qudt": QUDT,
     "unit": UNIT,
     "geo": GEO,
+    "rdf": RDF,
     "rdfs": RDFS,
     "xsd": XSD,
 }
@@ -96,6 +98,50 @@ WHERE {
 ORDER BY ?turbine_id
 """
 
+LINEAGE_QUERY = """
+SELECT DISTINCT ?s ?p ?o (isIRI(?o) AS ?o_is_iri)
+WHERE {
+  ?turbine kt:turbineId ?turbine_id .
+  {
+    { ?s kt:turbineId ?turbine_id }
+    UNION { ?s kt:hasTurbine/kt:turbineId ?turbine_id }
+    UNION { ?t kt:turbineId ?turbine_id ; kt:hasComponent ?s }
+    UNION { ?t kt:turbineId ?turbine_id ; kt:hasSensor ?s }
+    UNION { ?t kt:turbineId ?turbine_id . ?s kt:forTurbine ?t }
+    UNION { ?t kt:turbineId ?turbine_id . ?s kt:concerns ?t }
+    UNION { ?t kt:turbineId ?turbine_id ; prov:wasDerivedFrom/kt:partOf* ?s }
+    UNION {
+      ?t kt:turbineId ?turbine_id ;
+         kt:hasSensor/prov:wasDerivedFrom/kt:partOf* ?s
+    }
+  }
+  ?s ?p ?o .
+  FILTER (?p != rdfs:comment)
+  FILTER NOT EXISTS { ?o a kt:Turbine . FILTER (?o != ?turbine) }
+}
+"""
+
+SCHEMA_CLASSES_QUERY = """
+SELECT ?class ?label ?parent
+WHERE {
+  ?class a rdfs:Class ;
+         rdfs:label ?label .
+  OPTIONAL { ?class rdfs:subClassOf ?parent }
+}
+ORDER BY ?class
+"""
+
+SCHEMA_PROPERTIES_QUERY = """
+SELECT ?property ?label ?domain ?range
+WHERE {
+  ?property a rdf:Property ;
+            rdfs:label ?label ;
+            rdfs:domain ?domain ;
+            rdfs:range ?range .
+}
+ORDER BY ?property
+"""
+
 ALERTS_QUERY = """
 SELECT ?alert ?turbine_id ?model ?start ?end ?mean_residual_fraction
        ?lost_energy_mwh
@@ -136,6 +182,14 @@ def model_iri(turbine_id: str) -> URIRef:
 def alert_iri(turbine_id: str, number: int) -> URIRef:
     """IRI of an alert, e.g. kt:Alert_T01_001."""
     return KT[f"Alert_{turbine_id}_{number:03d}"]
+
+
+def source_iri(file_name: str) -> URIRef:
+    """IRI of a raw source file, e.g. kt:Source_Kelmarsh_WT_static_csv."""
+    return KT["Source_" + re.sub(r"[^A-Za-z0-9_-]", "_", file_name)]
+
+
+DATASET_IRI = KT["Dataset_Kelmarsh"]
 
 
 def decimal(value: float) -> Literal:
@@ -240,6 +294,16 @@ def get_models(g: Graph) -> pd.DataFrame:
     return query(g, MODELS_QUERY)
 
 
+def get_lineage(g: Graph, turbine_id: str) -> pd.DataFrame:
+    """Triples (s, p, o, o_is_iri) of a turbine and everything it traces to."""
+    return query(g, LINEAGE_QUERY, turbine_id=turbine_id)
+
+
+def get_schema(g: Graph) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Schema classes (with superclass) and properties (with domain, range)."""
+    return query(g, SCHEMA_CLASSES_QUERY), query(g, SCHEMA_PROPERTIES_QUERY)
+
+
 def get_alerts(g: Graph, turbine_id: str | None = None) -> pd.DataFrame:
     """Alerts, optionally for one turbine, with UTC start and end times."""
     bindings = {} if turbine_id is None else {"turbine_id": turbine_id}
@@ -258,6 +322,7 @@ def add_model(
     target: str,
     metrics: dict[str, float] | None = None,
     generated_at: datetime | None = None,
+    model_file: str | None = None,
 ) -> URIRef:
     """Add (or replace) the power model node of a turbine."""
     model = model_iri(turbine_id)
@@ -274,6 +339,8 @@ def add_model(
         g.add((model, KT.nmae, decimal(metrics["nmae"])))
     if generated_at is not None:
         g.add((model, PROV.generatedAtTime, datetime_literal(generated_at)))
+    if model_file is not None:
+        g.add((model, KT.modelFile, Literal(model_file)))
     return model
 
 

@@ -18,14 +18,20 @@ import streamlit as st  # noqa: E402
 from src import dashboard as db  # noqa: E402
 from src.config import load_config  # noqa: E402
 from src.graph_utils import (  # noqa: E402
+    LINEAGE_QUERY,
+    SCHEMA_CLASSES_QUERY,
+    SCHEMA_PROPERTIES_QUERY,
     SENSORS_QUERY,
     get_alerts,
+    get_lineage,
     get_models,
+    get_schema,
     get_sensors,
     get_turbines,
     load_graph,
     parquet_path_of,
 )
+from src.ontology_view import lineage_dot, schema_dot, without_sensors  # noqa: E402
 
 SPEEDS = [1, 6, 24]
 TICK_SECONDS = 0.5
@@ -49,6 +55,18 @@ def read_structure(ontology: str) -> dict[str, pd.DataFrame]:
         "alerts": get_alerts(g),
         "sensors": sensors,
     }
+
+
+@st.cache_data
+def read_lineage(ontology: str, turbine_id: str) -> pd.DataFrame:
+    """Lineage triples of one turbine from the graph."""
+    return get_lineage(load_graph(ontology), turbine_id)
+
+
+@st.cache_data
+def read_schema_dot(ontology: str) -> str:
+    """DOT class diagram of the graph's schema."""
+    return schema_dot(*get_schema(load_graph(ontology)))
 
 
 @st.cache_data
@@ -149,6 +167,94 @@ def fmt(value: float | None, pattern: str) -> str:
     return "–" if value is None or pd.isna(value) else pattern.format(value)
 
 
+def render_replay(
+    structure: dict[str, pd.DataFrame],
+    frames: dict[str, pd.DataFrame],
+    alerts_by: dict[str, pd.DataFrame],
+    statuses: dict[str, str],
+    turbine_id: str,
+    ts: pd.Timestamp,
+) -> None:
+    """The replay tab: map, KPIs, charts, alerts and the sensors query."""
+    turbines, sensors = structure["turbines"], structure["sensors"]
+    st.plotly_chart(status_map(turbines, statuses), width="stretch")
+
+    turbine = turbines.set_index("turbine_id").loc[turbine_id]
+    frame, turbine_alerts = frames[turbine_id], alerts_by[turbine_id]
+    current = db.row_at(frame, ts)
+    values = db.kpis(current, turbine["rated_power_kw"])
+    model = structure["models"].set_index("turbine_id").loc[turbine_id]
+    st.subheader(f"{turbine['label']} ({turbine_id}): {statuses[turbine_id]}")
+    cols = st.columns(4)
+    cols[0].metric("Actual power", fmt(values["power"], "{:,.0f} kW"))
+    cols[1].metric("Expected power", fmt(values["expected_power"], "{:,.0f} kW"))
+    cols[2].metric("Residual fraction", fmt(values["residual_fraction"], "{:+.1%}"))
+    cols[3].metric("Wind speed", fmt(values["wind_speed"], "{:.1f} m/s"))
+    st.caption(
+        f"Power model nMAE {fmt(model['nmae'], '{:.3f}')} "
+        f"(MAE {fmt(model['mae_kw'], '{:.0f}')} kW), rated power "
+        f"{turbine['rated_power_kw']:,.0f} kW"
+    )
+
+    start = ts - pd.Timedelta(days=CHART_DAYS)
+    left, right = st.columns(2)
+    left.plotly_chart(
+        power_chart(db.window(frame, ts, CHART_DAYS), turbine_alerts, start, ts),
+        width="stretch",
+    )
+    right.plotly_chart(power_curve(frame, current), width="stretch")
+
+    st.subheader("Alerts")
+    st.dataframe(
+        turbine_alerts[["start", "end", "mean_residual_fraction", "lost_energy_mwh"]]
+        .rename(
+            columns={
+                "mean_residual_fraction": "Mean residual fraction",
+                "lost_energy_mwh": "Lost energy (MWh)",
+            }
+        )
+        .round({"Mean residual fraction": 3, "Lost energy (MWh)": 3}),
+        hide_index=True,
+        width="stretch",
+    )
+
+    with st.expander("Ontology view"):
+        st.markdown(f"Sensors of `{turbine_id}`, bound as `?turbine_id`:")
+        st.code(SENSORS_QUERY.strip(), language="sparql")
+        st.dataframe(
+            sensors[sensors["turbine_id"] == turbine_id].drop(columns="turbine_id"),
+            hide_index=True,
+            width="stretch",
+        )
+
+
+def render_ontology(
+    ontology: str, turbine_id: str, alerts: pd.DataFrame, ts: pd.Timestamp
+) -> None:
+    """The ontology tab: lineage of the selected turbine and the schema."""
+    st.subheader(f"Lineage of {turbine_id}")
+    st.markdown(
+        "Where the turbine's specs and readings come from: specs are derived "
+        "from the static CSV, each sensor from its raw SCADA file (inside the "
+        "Zenodo archive) and, where matched, the signal mapping CSV. Alerts "
+        "inside the replay time are red."
+    )
+    triples = read_lineage(ontology, turbine_id)
+    keys = sorted(triples.loc[triples["p"].str.endswith("#signalKey"), "o"].astype(str))
+    shown = st.multiselect("Sensors to trace", keys, default=keys)
+    st.graphviz_chart(
+        lineage_dot(without_sensors(triples, set(shown)), db.active_alerts(alerts, ts)),
+        width="stretch",
+    )
+    with st.expander("Lineage SPARQL query"):
+        st.code(LINEAGE_QUERY.strip(), language="sparql")
+    st.subheader("Ontology schema")
+    st.graphviz_chart(read_schema_dot(ontology), width="stretch")
+    with st.expander("Schema SPARQL queries"):
+        st.code(SCHEMA_CLASSES_QUERY.strip(), language="sparql")
+        st.code(SCHEMA_PROPERTIES_QUERY.strip(), language="sparql")
+
+
 def main() -> None:
     """Render the dashboard and advance the replay when playing."""
     st.set_page_config(page_title="Kelmarsh Digital Twin", layout="wide")
@@ -198,54 +304,12 @@ def main() -> None:
 
     st.title("Kelmarsh Wind Farm Digital Twin")
     st.caption(f"Replay time: {ts:%Y-%m-%d %H:%M} UTC")
-    st.plotly_chart(status_map(turbines, statuses), width="stretch")
-
-    turbine = turbines.set_index("turbine_id").loc[turbine_id]
-    frame, turbine_alerts = frames[turbine_id], alerts_by[turbine_id]
-    current = db.row_at(frame, ts)
-    values = db.kpis(current, turbine["rated_power_kw"])
-    model = structure["models"].set_index("turbine_id").loc[turbine_id]
-    st.subheader(f"{turbine['label']} ({turbine_id}): {statuses[turbine_id]}")
-    cols = st.columns(4)
-    cols[0].metric("Actual power", fmt(values["power"], "{:,.0f} kW"))
-    cols[1].metric("Expected power", fmt(values["expected_power"], "{:,.0f} kW"))
-    cols[2].metric("Residual fraction", fmt(values["residual_fraction"], "{:+.1%}"))
-    cols[3].metric("Wind speed", fmt(values["wind_speed"], "{:.1f} m/s"))
-    st.caption(
-        f"Power model nMAE {fmt(model['nmae'], '{:.3f}')} "
-        f"(MAE {fmt(model['mae_kw'], '{:.0f}')} kW), rated power "
-        f"{turbine['rated_power_kw']:,.0f} kW"
-    )
-
-    start = ts - pd.Timedelta(days=CHART_DAYS)
-    left, right = st.columns(2)
-    left.plotly_chart(
-        power_chart(db.window(frame, ts, CHART_DAYS), turbine_alerts, start, ts),
-        width="stretch",
-    )
-    right.plotly_chart(power_curve(frame, current), width="stretch")
-
-    st.subheader("Alerts")
-    st.dataframe(
-        turbine_alerts[["start", "end", "mean_residual_fraction", "lost_energy_mwh"]]
-        .rename(
-            columns={
-                "mean_residual_fraction": "Mean residual fraction",
-                "lost_energy_mwh": "Lost energy (MWh)",
-            }
-        )
-        .round({"Mean residual fraction": 3, "Lost energy (MWh)": 3}),
-        hide_index=True,
-        width="stretch",
-    )
-
-    with st.expander("Ontology view"):
-        st.markdown(f"Sensors of `{turbine_id}`, bound as `?turbine_id`:")
-        st.code(SENSORS_QUERY.strip(), language="sparql")
-        st.dataframe(
-            sensors[sensors["turbine_id"] == turbine_id].drop(columns="turbine_id"),
-            hide_index=True,
-            width="stretch",
+    replay_tab, ontology_tab = st.tabs(["Replay", "Ontology & lineage"])
+    with replay_tab:
+        render_replay(structure, frames, alerts_by, statuses, turbine_id, ts)
+    with ontology_tab:
+        render_ontology(
+            config["paths"]["ontology"], turbine_id, alerts_by[turbine_id], ts
         )
 
     st.divider()

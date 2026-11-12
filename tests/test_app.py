@@ -74,3 +74,23 @@ def test_status_map_is_centred_on_the_farm() -> None:
 
     center = status_map["layout"]["map"]["center"]
     assert (round(center["lat"], 1), round(center["lon"], 1)) == (52.4, -0.9)
+
+
+def test_ontology_tab_shows_lineage_and_schema_graphs() -> None:
+    app = run_app()
+    graphs = app.get("graphviz_chart")
+
+    assert (
+        [t.label for t in app.tabs],
+        len(graphs),
+        "digraph lineage" in graphs[0].proto.spec,
+        "digraph schema" in graphs[1].proto.spec,
+    ) == (["Replay", "Ontology & lineage"], 2, True, True)
+
+
+def test_sensor_filter_narrows_lineage() -> None:
+    app = run_app()
+    app.multiselect[0].set_value(["power"]).run()
+    lineage = app.get("graphviz_chart")[0].proto.spec
+
+    assert ("power T01" in lineage, "rotor_speed T01" in lineage) == (True, False)

@@ -12,10 +12,14 @@ from src.graph_utils import (
     add_alert,
     add_model,
     get_alerts,
+    get_lineage,
+    get_schema,
     load_graph,
     model_iri,
     save_graph,
+    turbine_iri,
 )
+from src.ontology_view import qname
 
 START = datetime(2022, 10, 3, 0, 0, tzinfo=UTC)
 END = datetime(2022, 10, 4, 6, 0, tzinfo=UTC)
@@ -93,3 +97,46 @@ def test_saved_file_uses_spec_prefixes(graph: Graph, tmp_path: Path) -> None:
     text = path.read_text(encoding="utf-8")
 
     assert "@prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#> ." in text
+
+
+def test_add_model_records_model_file(graph: Graph) -> None:
+    add_model(graph, "T01", ["wind_speed"], "power", model_file="models/power_T01.txt")
+
+    assert str(graph.value(model_iri("T01"), KT.modelFile)) == "models/power_T01.txt"
+
+
+def test_lineage_covers_turbine_and_its_sources_only(graph: Graph) -> None:
+    nodes = {qname(s) for s in get_lineage(graph, "T01")["s"]}
+
+    assert (
+        {
+            "kt:Kelmarsh",
+            "kt:T01",
+            "kt:T01_Rotor",
+            "kt:T01_power",
+            "kt:PowerModel_T01",
+            "kt:Source_Kelmarsh_WT_static_csv",
+            "kt:Source_Kelmarsh_SCADA_2022_4457_zip",
+            "kt:Dataset_Kelmarsh",
+        }
+        <= nodes,
+        {n for n in nodes if "T02" in n},
+    ) == (True, set())
+
+
+def test_lineage_hides_links_to_other_turbines(graph: Graph) -> None:
+    lineage = get_lineage(graph, "T01")
+    farm_links = lineage[lineage["s"] == str(KT.Kelmarsh)]
+
+    assert str(turbine_iri("T02")) not in set(farm_links["o"])
+
+
+def test_schema_has_source_classes_under_prov_entity(graph: Graph) -> None:
+    classes, properties = get_schema(graph)
+    parents = classes.set_index("class")["parent"]
+
+    assert (
+        parents[str(KT.Dataset)],
+        parents[str(KT.SourceFile)],
+        str(PROV.wasDerivedFrom) in set(properties["property"]),
+    ) == (str(PROV.Entity), str(PROV.Entity), True)

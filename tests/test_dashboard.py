@@ -131,3 +131,15 @@ def test_map_center_is_mean_of_turbine_coordinates() -> None:
         pytest.approx(52.41),
         pytest.approx(-0.94),
     )
+
+
+def test_active_alerts_returns_iris_containing_ts() -> None:
+    alerts = pd.DataFrame(
+        {"alert": ["kt:A1", "kt:A2"], "start": [ts(0), ts(30)], "end": [ts(20), ts(40)]}
+    )
+
+    assert [db.active_alerts(alerts, ts(m)) for m in (10, 25, 30)] == [
+        {"kt:A1"},
+        set(),
+        {"kt:A2"},
+    ]

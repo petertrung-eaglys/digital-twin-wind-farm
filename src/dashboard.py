@@ -37,6 +37,12 @@ def in_alert(ts: pd.Timestamp, alerts: pd.DataFrame) -> bool:
     return bool(((alerts["start"] <= ts) & (ts <= alerts["end"])).any())
 
 
+def active_alerts(alerts: pd.DataFrame, ts: pd.Timestamp) -> set[str]:
+    """IRIs of the alerts whose period contains ts."""
+    inside = (alerts["start"] <= ts) & (ts <= alerts["end"])
+    return set(alerts.loc[inside, "alert"])
+
+
 def turbine_status(
     row: pd.Series | None, ts: pd.Timestamp, alerts: pd.DataFrame
 ) -> str:

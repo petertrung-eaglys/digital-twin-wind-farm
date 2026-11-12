@@ -100,9 +100,10 @@ def main() -> None:
             turbine.rated_power_kw,
             config["train_test_split"]["train_end"],
         )
-        model.booster_.save_model(models_dir / f"power_{tid}.txt")
+        model_file = models_dir / f"power_{tid}.txt"
+        model.booster_.save_model(model_file)
         frame.assign(expected_power=expected).to_parquet(path, index=False)
-        add_model(g, tid, inputs, target, metrics, datetime.now(UTC))
+        add_model(g, tid, inputs, target, metrics, datetime.now(UTC), str(model_file))
         all_metrics[tid] = metrics
         logger.info(
             "%s: MAE %.1f kW, nMAE %.4f", tid, metrics["mae_kw"], metrics["nmae"]

@@ -19,6 +19,11 @@ kt:Component a rdfs:Class ;
     rdfs:label "Component" ;
     rdfs:comment "Superclass for turbine parts." .
 
+kt:Dataset a rdfs:Class ;
+    rdfs:label "Dataset" ;
+    rdfs:comment "The published dataset all raw files come from." ;
+    rdfs:subClassOf prov:Entity .
+
 kt:Generator a rdfs:Class ;
     rdfs:label "Generator" ;
     rdfs:comment "The electrical generator." ;
@@ -38,6 +43,11 @@ kt:Rotor a rdfs:Class ;
     rdfs:label "Rotor" ;
     rdfs:comment "The rotor with hub and blades." ;
     rdfs:subClassOf kt:Component .
+
+kt:SourceFile a rdfs:Class ;
+    rdfs:label "Source file" ;
+    rdfs:comment "A raw file of the dataset that graph facts or readings come from." ;
+    rdfs:subClassOf prov:Entity .
 
 kt:Turbine a rdfs:Class ;
     rdfs:label "Turbine" ;
@@ -65,6 +75,12 @@ geo:long a rdf:Property ;
     rdfs:domain kt:Turbine ;
     rdfs:range rdfs:Literal .
 
+prov:wasDerivedFrom a rdf:Property ;
+    rdfs:label "was derived from" ;
+    rdfs:comment "The source file a turbine's specs or a sensor's readings come from." ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity .
+
 sosa:observes a rdf:Property ;
     rdfs:label "observes" ;
     rdfs:comment "The property the sensor measures." ;
@@ -77,16 +93,40 @@ kt:attachedTo a rdf:Property ;
     rdfs:domain sosa:Sensor ;
     rdfs:range kt:Component .
 
+kt:commissioningDate a rdf:Property ;
+    rdfs:label "commissioning date" ;
+    rdfs:comment "Commercial operations date." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range rdfs:Literal .
+
 kt:concerns a rdf:Property ;
     rdfs:label "concerns" ;
     rdfs:comment "Turbine of the alert." ;
     rdfs:domain kt:Alert ;
     rdfs:range kt:Turbine .
 
+kt:doi a rdf:Property ;
+    rdfs:label "DOI" ;
+    rdfs:comment "Digital object identifier." ;
+    rdfs:domain kt:Dataset ;
+    rdfs:range rdfs:Literal .
+
+kt:downloadUrl a rdf:Property ;
+    rdfs:label "download URL" ;
+    rdfs:comment "Zenodo URL." ;
+    rdfs:domain kt:SourceFile ;
+    rdfs:range rdfs:Literal .
+
 kt:endTime a rdf:Property ;
     rdfs:label "end time" ;
     rdfs:comment "Alert end (UTC)." ;
     rdfs:domain kt:Alert ;
+    rdfs:range rdfs:Literal .
+
+kt:fileName a rdf:Property ;
+    rdfs:label "file name" ;
+    rdfs:comment "Raw file name." ;
+    rdfs:domain kt:SourceFile ;
     rdfs:range rdfs:Literal .
 
 kt:forTurbine a rdf:Property ;
@@ -125,6 +165,12 @@ kt:hubHeightM a rdf:Property ;
     rdfs:domain kt:Turbine ;
     rdfs:range rdfs:Literal .
 
+kt:license a rdf:Property ;
+    rdfs:label "license" ;
+    rdfs:comment "Dataset license." ;
+    rdfs:domain kt:Dataset ;
+    rdfs:range rdfs:Literal .
+
 kt:lostEnergyMWh a rdf:Property ;
     rdfs:label "lost energy (MWh)" ;
     rdfs:comment "Sum of expected minus actual energy in the period." ;
@@ -137,10 +183,22 @@ kt:maeKW a rdf:Property ;
     rdfs:domain kt:PowerModel ;
     rdfs:range rdfs:Literal .
 
+kt:manufacturer a rdf:Property ;
+    rdfs:label "manufacturer" ;
+    rdfs:comment "Maker." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range rdfs:Literal .
+
 kt:manufacturerTitle a rdf:Property ;
     rdfs:label "manufacturer title" ;
     rdfs:comment "Manufacturer signal name from the signal mapping file." ;
     rdfs:domain sosa:Sensor ;
+    rdfs:range rdfs:Literal .
+
+kt:md5 a rdf:Property ;
+    rdfs:label "MD5" ;
+    rdfs:comment "Checksum of the file." ;
+    rdfs:domain kt:SourceFile ;
     rdfs:range rdfs:Literal .
 
 kt:meanResidualFraction a rdf:Property ;
@@ -149,10 +207,28 @@ kt:meanResidualFraction a rdf:Property ;
     rdfs:domain kt:Alert ;
     rdfs:range rdfs:Literal .
 
+kt:modelFile a rdf:Property ;
+    rdfs:label "model file" ;
+    rdfs:comment "Path of the saved LightGBM model." ;
+    rdfs:domain kt:PowerModel ;
+    rdfs:range rdfs:Literal .
+
 kt:nmae a rdf:Property ;
     rdfs:label "nMAE" ;
     rdfs:comment "MAE / rated power." ;
     rdfs:domain kt:PowerModel ;
+    rdfs:range rdfs:Literal .
+
+kt:partOf a rdf:Property ;
+    rdfs:label "part of" ;
+    rdfs:comment "The archive or dataset that contains the file." ;
+    rdfs:domain kt:SourceFile ;
+    rdfs:range prov:Entity .
+
+kt:publisher a rdf:Property ;
+    rdfs:label "publisher" ;
+    rdfs:comment "Data owner." ;
+    rdfs:domain kt:Dataset ;
     rdfs:range rdfs:Literal .
 
 kt:raisedBy a rdf:Property ;
@@ -206,6 +282,12 @@ kt:target a rdf:Property ;
 kt:turbineId a rdf:Property ;
     rdfs:label "turbine id" ;
     rdfs:comment "Short id, e.g. T01." ;
+    rdfs:domain kt:Turbine ;
+    rdfs:range rdfs:Literal .
+
+kt:turbineModel a rdf:Property ;
+    rdfs:label "turbine model" ;
+    rdfs:comment "Model name." ;
     rdfs:domain kt:Turbine ;
     rdfs:range rdfs:Literal .
 
@@ -319,9 +401,10 @@ kt:Kelmarsh a kt:WindFarm ;
 kt:PowerModel_T03 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T03" ;
-    prov:generatedAtTime "2026-11-12T00:25:44.944090+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T00:56:48.940705+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T03 ;
     kt:maeKW 62.069741723423405 ;
+    kt:modelFile "models/power_T03.txt" ;
     kt:nmae 0.030277922791913856 ;
     kt:target kt:T03_power ;
     kt:usesInput kt:T03_ambient_temp,
@@ -331,9 +414,10 @@ kt:PowerModel_T03 a prov:Entity,
 kt:PowerModel_T05 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T05" ;
-    prov:generatedAtTime "2026-11-12T00:25:47.426679+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T00:56:51.859685+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T05 ;
     kt:maeKW 71.0934475696894 ;
+    kt:modelFile "models/power_T05.txt" ;
     kt:nmae 0.034679730521799706 ;
     kt:target kt:T05_power ;
     kt:usesInput kt:T05_ambient_temp,
@@ -343,9 +427,10 @@ kt:PowerModel_T05 a prov:Entity,
 kt:PowerModel_T06 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T06" ;
-    prov:generatedAtTime "2026-11-12T00:25:48.651041+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T00:56:53.233429+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T06 ;
     kt:maeKW 53.67050844193839 ;
+    kt:modelFile "models/power_T06.txt" ;
     kt:nmae 0.0261807358253358 ;
     kt:target kt:T06_power ;
     kt:usesInput kt:T06_ambient_temp,
@@ -355,6 +440,8 @@ kt:PowerModel_T06 a prov:Entity,
 kt:T01_nacelle_direction a sosa:Sensor ;
     rdfs:label "nacelle_direction T01" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228_csv ;
     sosa:observes kt:NacelleDirection ;
     kt:attachedTo kt:T01_Nacelle ;
     kt:greenbyteSignalId 3 ;
@@ -366,6 +453,8 @@ kt:T01_nacelle_direction a sosa:Sensor ;
 kt:T01_pitch a sosa:Sensor ;
     rdfs:label "pitch T01" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228_csv ;
     sosa:observes kt:PitchAngle ;
     kt:attachedTo kt:T01_Rotor ;
     kt:greenbyteSignalId 80 ;
@@ -377,6 +466,8 @@ kt:T01_pitch a sosa:Sensor ;
 kt:T01_rotor_speed a sosa:Sensor ;
     rdfs:label "rotor_speed T01" ;
     qudt:unit unit:REV-PER-MIN ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228_csv ;
     sosa:observes kt:RotorSpeed ;
     kt:attachedTo kt:T01_Rotor ;
     kt:greenbyteSignalId 54 ;
@@ -388,6 +479,8 @@ kt:T01_rotor_speed a sosa:Sensor ;
 kt:T02_nacelle_direction a sosa:Sensor ;
     rdfs:label "nacelle_direction T02" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229_csv ;
     sosa:observes kt:NacelleDirection ;
     kt:attachedTo kt:T02_Nacelle ;
     kt:greenbyteSignalId 3 ;
@@ -399,6 +492,8 @@ kt:T02_nacelle_direction a sosa:Sensor ;
 kt:T02_pitch a sosa:Sensor ;
     rdfs:label "pitch T02" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229_csv ;
     sosa:observes kt:PitchAngle ;
     kt:attachedTo kt:T02_Rotor ;
     kt:greenbyteSignalId 80 ;
@@ -410,6 +505,8 @@ kt:T02_pitch a sosa:Sensor ;
 kt:T02_rotor_speed a sosa:Sensor ;
     rdfs:label "rotor_speed T02" ;
     qudt:unit unit:REV-PER-MIN ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229_csv ;
     sosa:observes kt:RotorSpeed ;
     kt:attachedTo kt:T02_Rotor ;
     kt:greenbyteSignalId 54 ;
@@ -421,6 +518,8 @@ kt:T02_rotor_speed a sosa:Sensor ;
 kt:T03_nacelle_direction a sosa:Sensor ;
     rdfs:label "nacelle_direction T03" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230_csv ;
     sosa:observes kt:NacelleDirection ;
     kt:attachedTo kt:T03_Nacelle ;
     kt:greenbyteSignalId 3 ;
@@ -432,6 +531,8 @@ kt:T03_nacelle_direction a sosa:Sensor ;
 kt:T03_pitch a sosa:Sensor ;
     rdfs:label "pitch T03" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230_csv ;
     sosa:observes kt:PitchAngle ;
     kt:attachedTo kt:T03_Rotor ;
     kt:greenbyteSignalId 80 ;
@@ -443,6 +544,8 @@ kt:T03_pitch a sosa:Sensor ;
 kt:T03_rotor_speed a sosa:Sensor ;
     rdfs:label "rotor_speed T03" ;
     qudt:unit unit:REV-PER-MIN ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230_csv ;
     sosa:observes kt:RotorSpeed ;
     kt:attachedTo kt:T03_Rotor ;
     kt:greenbyteSignalId 54 ;
@@ -454,6 +557,8 @@ kt:T03_rotor_speed a sosa:Sensor ;
 kt:T04_nacelle_direction a sosa:Sensor ;
     rdfs:label "nacelle_direction T04" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231_csv ;
     sosa:observes kt:NacelleDirection ;
     kt:attachedTo kt:T04_Nacelle ;
     kt:greenbyteSignalId 3 ;
@@ -465,6 +570,8 @@ kt:T04_nacelle_direction a sosa:Sensor ;
 kt:T04_pitch a sosa:Sensor ;
     rdfs:label "pitch T04" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231_csv ;
     sosa:observes kt:PitchAngle ;
     kt:attachedTo kt:T04_Rotor ;
     kt:greenbyteSignalId 80 ;
@@ -476,6 +583,8 @@ kt:T04_pitch a sosa:Sensor ;
 kt:T04_rotor_speed a sosa:Sensor ;
     rdfs:label "rotor_speed T04" ;
     qudt:unit unit:REV-PER-MIN ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231_csv ;
     sosa:observes kt:RotorSpeed ;
     kt:attachedTo kt:T04_Rotor ;
     kt:greenbyteSignalId 54 ;
@@ -487,6 +596,8 @@ kt:T04_rotor_speed a sosa:Sensor ;
 kt:T05_nacelle_direction a sosa:Sensor ;
     rdfs:label "nacelle_direction T05" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232_csv ;
     sosa:observes kt:NacelleDirection ;
     kt:attachedTo kt:T05_Nacelle ;
     kt:greenbyteSignalId 3 ;
@@ -498,6 +609,8 @@ kt:T05_nacelle_direction a sosa:Sensor ;
 kt:T05_pitch a sosa:Sensor ;
     rdfs:label "pitch T05" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232_csv ;
     sosa:observes kt:PitchAngle ;
     kt:attachedTo kt:T05_Rotor ;
     kt:greenbyteSignalId 80 ;
@@ -509,6 +622,8 @@ kt:T05_pitch a sosa:Sensor ;
 kt:T05_rotor_speed a sosa:Sensor ;
     rdfs:label "rotor_speed T05" ;
     qudt:unit unit:REV-PER-MIN ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232_csv ;
     sosa:observes kt:RotorSpeed ;
     kt:attachedTo kt:T05_Rotor ;
     kt:greenbyteSignalId 54 ;
@@ -520,6 +635,8 @@ kt:T05_rotor_speed a sosa:Sensor ;
 kt:T06_nacelle_direction a sosa:Sensor ;
     rdfs:label "nacelle_direction T06" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233_csv ;
     sosa:observes kt:NacelleDirection ;
     kt:attachedTo kt:T06_Nacelle ;
     kt:greenbyteSignalId 3 ;
@@ -531,6 +648,8 @@ kt:T06_nacelle_direction a sosa:Sensor ;
 kt:T06_pitch a sosa:Sensor ;
     rdfs:label "pitch T06" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233_csv ;
     sosa:observes kt:PitchAngle ;
     kt:attachedTo kt:T06_Rotor ;
     kt:greenbyteSignalId 80 ;
@@ -542,6 +661,8 @@ kt:T06_pitch a sosa:Sensor ;
 kt:T06_rotor_speed a sosa:Sensor ;
     rdfs:label "rotor_speed T06" ;
     qudt:unit unit:REV-PER-MIN ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233_csv ;
     sosa:observes kt:RotorSpeed ;
     kt:attachedTo kt:T06_Rotor ;
     kt:greenbyteSignalId 54 ;
@@ -553,9 +674,10 @@ kt:T06_rotor_speed a sosa:Sensor ;
 kt:PowerModel_T04 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T04" ;
-    prov:generatedAtTime "2026-11-12T00:25:46.186501+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T00:56:50.339045+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T04 ;
     kt:maeKW 62.97225264811127 ;
+    kt:modelFile "models/power_T04.txt" ;
     kt:nmae 0.030718172023468913 ;
     kt:target kt:T04_power ;
     kt:usesInput kt:T04_ambient_temp,
@@ -568,6 +690,8 @@ kt:T01_Generator a kt:Generator ;
 kt:T01_ambient_temp a sosa:Sensor ;
     rdfs:label "ambient_temp T01" ;
     qudt:unit unit:DEG_C ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228_csv ;
     sosa:observes kt:AmbientTemperature ;
     kt:attachedTo kt:T01_Nacelle ;
     kt:greenbyteSignalId 359 ;
@@ -579,6 +703,8 @@ kt:T01_ambient_temp a sosa:Sensor ;
 kt:T01_power a sosa:Sensor ;
     rdfs:label "power T01" ;
     qudt:unit unit:KiloW ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228_csv ;
     sosa:observes kt:ActivePower ;
     kt:attachedTo kt:T01_Generator ;
     kt:greenbyteSignalId 5 ;
@@ -590,6 +716,8 @@ kt:T01_power a sosa:Sensor ;
 kt:T01_wind_direction a sosa:Sensor ;
     rdfs:label "wind_direction T01" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228_csv ;
     sosa:observes kt:WindDirection ;
     kt:attachedTo kt:T01_Nacelle ;
     kt:greenbyteSignalId 2 ;
@@ -601,6 +729,8 @@ kt:T01_wind_direction a sosa:Sensor ;
 kt:T01_wind_speed a sosa:Sensor ;
     rdfs:label "wind_speed T01" ;
     qudt:unit unit:M-PER-SEC ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228_csv ;
     sosa:observes kt:WindSpeed ;
     kt:attachedTo kt:T01_Nacelle ;
     kt:greenbyteSignalId 1 ;
@@ -615,6 +745,8 @@ kt:T02_Generator a kt:Generator ;
 kt:T02_ambient_temp a sosa:Sensor ;
     rdfs:label "ambient_temp T02" ;
     qudt:unit unit:DEG_C ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229_csv ;
     sosa:observes kt:AmbientTemperature ;
     kt:attachedTo kt:T02_Nacelle ;
     kt:greenbyteSignalId 359 ;
@@ -626,6 +758,8 @@ kt:T02_ambient_temp a sosa:Sensor ;
 kt:T02_power a sosa:Sensor ;
     rdfs:label "power T02" ;
     qudt:unit unit:KiloW ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229_csv ;
     sosa:observes kt:ActivePower ;
     kt:attachedTo kt:T02_Generator ;
     kt:greenbyteSignalId 5 ;
@@ -637,6 +771,8 @@ kt:T02_power a sosa:Sensor ;
 kt:T02_wind_direction a sosa:Sensor ;
     rdfs:label "wind_direction T02" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229_csv ;
     sosa:observes kt:WindDirection ;
     kt:attachedTo kt:T02_Nacelle ;
     kt:greenbyteSignalId 2 ;
@@ -648,6 +784,8 @@ kt:T02_wind_direction a sosa:Sensor ;
 kt:T02_wind_speed a sosa:Sensor ;
     rdfs:label "wind_speed T02" ;
     qudt:unit unit:M-PER-SEC ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229_csv ;
     sosa:observes kt:WindSpeed ;
     kt:attachedTo kt:T02_Nacelle ;
     kt:greenbyteSignalId 1 ;
@@ -660,6 +798,8 @@ kt:T03 a kt:Turbine ;
     rdfs:label "Kelmarsh 3" ;
     geo:lat 52.403834 ;
     geo:long -0.94419 ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_static_csv ;
+    kt:commissioningDate "2016-04-15"^^xsd:date ;
     kt:hasComponent kt:T03_Generator,
         kt:T03_Nacelle,
         kt:T03_Rotor ;
@@ -671,9 +811,11 @@ kt:T03 a kt:Turbine ;
         kt:T03_wind_direction,
         kt:T03_wind_speed ;
     kt:hubHeightM 68.5 ;
+    kt:manufacturer "Senvion" ;
     kt:ratedPowerKW 2050.0 ;
     kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T03" .
+    kt:turbineId "T03" ;
+    kt:turbineModel "MM92" .
 
 kt:T03_Generator a kt:Generator ;
     rdfs:label "Generator T03" .
@@ -681,6 +823,8 @@ kt:T03_Generator a kt:Generator ;
 kt:T03_ambient_temp a sosa:Sensor ;
     rdfs:label "ambient_temp T03" ;
     qudt:unit unit:DEG_C ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230_csv ;
     sosa:observes kt:AmbientTemperature ;
     kt:attachedTo kt:T03_Nacelle ;
     kt:greenbyteSignalId 359 ;
@@ -692,6 +836,8 @@ kt:T03_ambient_temp a sosa:Sensor ;
 kt:T03_power a sosa:Sensor ;
     rdfs:label "power T03" ;
     qudt:unit unit:KiloW ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230_csv ;
     sosa:observes kt:ActivePower ;
     kt:attachedTo kt:T03_Generator ;
     kt:greenbyteSignalId 5 ;
@@ -703,6 +849,8 @@ kt:T03_power a sosa:Sensor ;
 kt:T03_wind_direction a sosa:Sensor ;
     rdfs:label "wind_direction T03" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230_csv ;
     sosa:observes kt:WindDirection ;
     kt:attachedTo kt:T03_Nacelle ;
     kt:greenbyteSignalId 2 ;
@@ -714,6 +862,8 @@ kt:T03_wind_direction a sosa:Sensor ;
 kt:T03_wind_speed a sosa:Sensor ;
     rdfs:label "wind_speed T03" ;
     qudt:unit unit:M-PER-SEC ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230_csv ;
     sosa:observes kt:WindSpeed ;
     kt:attachedTo kt:T03_Nacelle ;
     kt:greenbyteSignalId 1 ;
@@ -728,6 +878,8 @@ kt:T04_Generator a kt:Generator ;
 kt:T04_ambient_temp a sosa:Sensor ;
     rdfs:label "ambient_temp T04" ;
     qudt:unit unit:DEG_C ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231_csv ;
     sosa:observes kt:AmbientTemperature ;
     kt:attachedTo kt:T04_Nacelle ;
     kt:greenbyteSignalId 359 ;
@@ -739,6 +891,8 @@ kt:T04_ambient_temp a sosa:Sensor ;
 kt:T04_power a sosa:Sensor ;
     rdfs:label "power T04" ;
     qudt:unit unit:KiloW ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231_csv ;
     sosa:observes kt:ActivePower ;
     kt:attachedTo kt:T04_Generator ;
     kt:greenbyteSignalId 5 ;
@@ -750,6 +904,8 @@ kt:T04_power a sosa:Sensor ;
 kt:T04_wind_direction a sosa:Sensor ;
     rdfs:label "wind_direction T04" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231_csv ;
     sosa:observes kt:WindDirection ;
     kt:attachedTo kt:T04_Nacelle ;
     kt:greenbyteSignalId 2 ;
@@ -761,6 +917,8 @@ kt:T04_wind_direction a sosa:Sensor ;
 kt:T04_wind_speed a sosa:Sensor ;
     rdfs:label "wind_speed T04" ;
     qudt:unit unit:M-PER-SEC ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231_csv ;
     sosa:observes kt:WindSpeed ;
     kt:attachedTo kt:T04_Nacelle ;
     kt:greenbyteSignalId 1 ;
@@ -773,6 +931,8 @@ kt:T05 a kt:Turbine ;
     rdfs:label "Kelmarsh 5" ;
     geo:lat 52.402308 ;
     geo:long -0.940537 ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_static_csv ;
+    kt:commissioningDate "2016-04-15"^^xsd:date ;
     kt:hasComponent kt:T05_Generator,
         kt:T05_Nacelle,
         kt:T05_Rotor ;
@@ -784,9 +944,11 @@ kt:T05 a kt:Turbine ;
         kt:T05_wind_direction,
         kt:T05_wind_speed ;
     kt:hubHeightM 78.5 ;
+    kt:manufacturer "Senvion" ;
     kt:ratedPowerKW 2050.0 ;
     kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T05" .
+    kt:turbineId "T05" ;
+    kt:turbineModel "MM92" .
 
 kt:T05_Generator a kt:Generator ;
     rdfs:label "Generator T05" .
@@ -794,6 +956,8 @@ kt:T05_Generator a kt:Generator ;
 kt:T05_ambient_temp a sosa:Sensor ;
     rdfs:label "ambient_temp T05" ;
     qudt:unit unit:DEG_C ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232_csv ;
     sosa:observes kt:AmbientTemperature ;
     kt:attachedTo kt:T05_Nacelle ;
     kt:greenbyteSignalId 359 ;
@@ -805,6 +969,8 @@ kt:T05_ambient_temp a sosa:Sensor ;
 kt:T05_power a sosa:Sensor ;
     rdfs:label "power T05" ;
     qudt:unit unit:KiloW ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232_csv ;
     sosa:observes kt:ActivePower ;
     kt:attachedTo kt:T05_Generator ;
     kt:greenbyteSignalId 5 ;
@@ -816,6 +982,8 @@ kt:T05_power a sosa:Sensor ;
 kt:T05_wind_direction a sosa:Sensor ;
     rdfs:label "wind_direction T05" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232_csv ;
     sosa:observes kt:WindDirection ;
     kt:attachedTo kt:T05_Nacelle ;
     kt:greenbyteSignalId 2 ;
@@ -827,6 +995,8 @@ kt:T05_wind_direction a sosa:Sensor ;
 kt:T05_wind_speed a sosa:Sensor ;
     rdfs:label "wind_speed T05" ;
     qudt:unit unit:M-PER-SEC ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232_csv ;
     sosa:observes kt:WindSpeed ;
     kt:attachedTo kt:T05_Nacelle ;
     kt:greenbyteSignalId 1 ;
@@ -841,6 +1011,8 @@ kt:T06_Generator a kt:Generator ;
 kt:T06_ambient_temp a sosa:Sensor ;
     rdfs:label "ambient_temp T06" ;
     qudt:unit unit:DEG_C ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233_csv ;
     sosa:observes kt:AmbientTemperature ;
     kt:attachedTo kt:T06_Nacelle ;
     kt:greenbyteSignalId 359 ;
@@ -852,6 +1024,8 @@ kt:T06_ambient_temp a sosa:Sensor ;
 kt:T06_power a sosa:Sensor ;
     rdfs:label "power T06" ;
     qudt:unit unit:KiloW ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233_csv ;
     sosa:observes kt:ActivePower ;
     kt:attachedTo kt:T06_Generator ;
     kt:greenbyteSignalId 5 ;
@@ -863,6 +1037,8 @@ kt:T06_power a sosa:Sensor ;
 kt:T06_wind_direction a sosa:Sensor ;
     rdfs:label "wind_direction T06" ;
     qudt:unit unit:DEG ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233_csv ;
     sosa:observes kt:WindDirection ;
     kt:attachedTo kt:T06_Nacelle ;
     kt:greenbyteSignalId 2 ;
@@ -874,6 +1050,8 @@ kt:T06_wind_direction a sosa:Sensor ;
 kt:T06_wind_speed a sosa:Sensor ;
     rdfs:label "wind_speed T06" ;
     qudt:unit unit:M-PER-SEC ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_dataSignalMapping_csv,
+        kt:Source_Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233_csv ;
     sosa:observes kt:WindSpeed ;
     kt:attachedTo kt:T06_Nacelle ;
     kt:greenbyteSignalId 1 ;
@@ -882,12 +1060,20 @@ kt:T06_wind_speed a sosa:Sensor ;
     kt:signalKey "wind_speed" ;
     kt:storedIn "data/processed/scada_T06.parquet" .
 
+kt:Dataset_Kelmarsh a prov:Entity,
+        kt:Dataset ;
+    rdfs:label "Kelmarsh wind farm data" ;
+    kt:doi "10.5281/zenodo.16807551" ;
+    kt:license "CC-BY-4.0" ;
+    kt:publisher "Cubico Sustainable Investments Ltd" .
+
 kt:PowerModel_T01 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T01" ;
-    prov:generatedAtTime "2026-11-12T00:25:42.442974+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T00:56:45.740658+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T01 ;
     kt:maeKW 71.5630854952287 ;
+    kt:modelFile "models/power_T01.txt" ;
     kt:nmae 0.03490882219279449 ;
     kt:target kt:T01_power ;
     kt:usesInput kt:T01_ambient_temp,
@@ -897,9 +1083,10 @@ kt:PowerModel_T01 a prov:Entity,
 kt:PowerModel_T02 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T02" ;
-    prov:generatedAtTime "2026-11-12T00:25:43.670836+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T00:56:47.669488+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T02 ;
     kt:maeKW 80.33368217304239 ;
+    kt:modelFile "models/power_T02.txt" ;
     kt:nmae 0.039187162035630434 ;
     kt:target kt:T02_power ;
     kt:usesInput kt:T02_ambient_temp,
@@ -925,6 +1112,8 @@ kt:T06 a kt:Turbine ;
     rdfs:label "Kelmarsh 6" ;
     geo:lat 52.400687 ;
     geo:long -0.936093 ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_static_csv ;
+    kt:commissioningDate "2016-04-15"^^xsd:date ;
     kt:hasComponent kt:T06_Generator,
         kt:T06_Nacelle,
         kt:T06_Rotor ;
@@ -936,9 +1125,11 @@ kt:T06 a kt:Turbine ;
         kt:T06_wind_direction,
         kt:T06_wind_speed ;
     kt:hubHeightM 68.5 ;
+    kt:manufacturer "Senvion" ;
     kt:ratedPowerKW 2050.0 ;
     kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T06" .
+    kt:turbineId "T06" ;
+    kt:turbineModel "MM92" .
 
 kt:T06_Rotor a kt:Rotor ;
     rdfs:label "Rotor T06" .
@@ -947,6 +1138,8 @@ kt:T04 a kt:Turbine ;
     rdfs:label "Kelmarsh 4" ;
     geo:lat 52.398781 ;
     geo:long -0.94115 ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_static_csv ;
+    kt:commissioningDate "2016-04-15"^^xsd:date ;
     kt:hasComponent kt:T04_Generator,
         kt:T04_Nacelle,
         kt:T04_Rotor ;
@@ -958,14 +1151,18 @@ kt:T04 a kt:Turbine ;
         kt:T04_wind_direction,
         kt:T04_wind_speed ;
     kt:hubHeightM 78.5 ;
+    kt:manufacturer "Senvion" ;
     kt:ratedPowerKW 2050.0 ;
     kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T04" .
+    kt:turbineId "T04" ;
+    kt:turbineModel "MM92" .
 
 kt:T01 a kt:Turbine ;
     rdfs:label "Kelmarsh 1" ;
     geo:lat 52.400604 ;
     geo:long -0.947133 ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_static_csv ;
+    kt:commissioningDate "2016-04-15"^^xsd:date ;
     kt:hasComponent kt:T01_Generator,
         kt:T01_Nacelle,
         kt:T01_Rotor ;
@@ -977,9 +1174,11 @@ kt:T01 a kt:Turbine ;
         kt:T01_wind_direction,
         kt:T01_wind_speed ;
     kt:hubHeightM 78.5 ;
+    kt:manufacturer "Senvion" ;
     kt:ratedPowerKW 2050.0 ;
     kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T01" .
+    kt:turbineId "T01" ;
+    kt:turbineModel "MM92" .
 
 kt:T01_Nacelle a kt:Nacelle ;
     rdfs:label "Nacelle T01" .
@@ -988,6 +1187,8 @@ kt:T02 a kt:Turbine ;
     rdfs:label "Kelmarsh 2" ;
     geo:lat 52.402551 ;
     geo:long -0.949527 ;
+    prov:wasDerivedFrom kt:Source_Kelmarsh_WT_static_csv ;
+    kt:commissioningDate "2016-04-15"^^xsd:date ;
     kt:hasComponent kt:T02_Generator,
         kt:T02_Nacelle,
         kt:T02_Rotor ;
@@ -999,9 +1200,11 @@ kt:T02 a kt:Turbine ;
         kt:T02_wind_direction,
         kt:T02_wind_speed ;
     kt:hubHeightM 78.5 ;
+    kt:manufacturer "Senvion" ;
     kt:ratedPowerKW 2050.0 ;
     kt:rotorDiameterM 92.0 ;
-    kt:turbineId "T02" .
+    kt:turbineId "T02" ;
+    kt:turbineModel "MM92" .
 
 kt:T02_Nacelle a kt:Nacelle ;
     rdfs:label "Nacelle T02" .
@@ -1033,9 +1236,69 @@ kt:PitchAngle a sosa:ObservableProperty ;
 kt:RotorSpeed a sosa:ObservableProperty ;
     rdfs:label "RotorSpeed" .
 
+kt:Source_Kelmarsh_SCADA_2022_4457_zip a prov:Entity,
+        kt:SourceFile ;
+    rdfs:label "Kelmarsh_SCADA_2022_4457.zip" ;
+    kt:downloadUrl "https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2022_4457.zip?download=1" ;
+    kt:fileName "Kelmarsh_SCADA_2022_4457.zip" ;
+    kt:md5 "b695d2b21cd5a236b2e690e0a43df5ab" ;
+    kt:partOf kt:Dataset_Kelmarsh .
+
+kt:Source_Kelmarsh_WT_static_csv a prov:Entity,
+        kt:SourceFile ;
+    rdfs:label "Kelmarsh_WT_static.csv" ;
+    kt:downloadUrl "https://zenodo.org/records/16807551/files/Kelmarsh_WT_static.csv?download=1" ;
+    kt:fileName "Kelmarsh_WT_static.csv" ;
+    kt:md5 "af3a038f0f7fddfc1608ad0bfc8cf5ba" ;
+    kt:partOf kt:Dataset_Kelmarsh .
+
 kt:WindDirection a sosa:ObservableProperty ;
     rdfs:label "WindDirection" .
 
 kt:WindSpeed a sosa:ObservableProperty ;
     rdfs:label "WindSpeed" .
+
+kt:Source_Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228_csv a prov:Entity,
+        kt:SourceFile ;
+    rdfs:label "Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228.csv" ;
+    kt:fileName "Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228.csv" ;
+    kt:partOf kt:Source_Kelmarsh_SCADA_2022_4457_zip .
+
+kt:Source_Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229_csv a prov:Entity,
+        kt:SourceFile ;
+    rdfs:label "Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229.csv" ;
+    kt:fileName "Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229.csv" ;
+    kt:partOf kt:Source_Kelmarsh_SCADA_2022_4457_zip .
+
+kt:Source_Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230_csv a prov:Entity,
+        kt:SourceFile ;
+    rdfs:label "Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230.csv" ;
+    kt:fileName "Turbine_Data_Kelmarsh_3_2022-01-01_-_2023-01-01_230.csv" ;
+    kt:partOf kt:Source_Kelmarsh_SCADA_2022_4457_zip .
+
+kt:Source_Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231_csv a prov:Entity,
+        kt:SourceFile ;
+    rdfs:label "Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231.csv" ;
+    kt:fileName "Turbine_Data_Kelmarsh_4_2022-01-01_-_2023-01-01_231.csv" ;
+    kt:partOf kt:Source_Kelmarsh_SCADA_2022_4457_zip .
+
+kt:Source_Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232_csv a prov:Entity,
+        kt:SourceFile ;
+    rdfs:label "Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232.csv" ;
+    kt:fileName "Turbine_Data_Kelmarsh_5_2022-01-01_-_2023-01-01_232.csv" ;
+    kt:partOf kt:Source_Kelmarsh_SCADA_2022_4457_zip .
+
+kt:Source_Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233_csv a prov:Entity,
+        kt:SourceFile ;
+    rdfs:label "Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233.csv" ;
+    kt:fileName "Turbine_Data_Kelmarsh_6_2022-01-01_-_2023-01-01_233.csv" ;
+    kt:partOf kt:Source_Kelmarsh_SCADA_2022_4457_zip .
+
+kt:Source_Kelmarsh_WT_dataSignalMapping_csv a prov:Entity,
+        kt:SourceFile ;
+    rdfs:label "Kelmarsh_WT_dataSignalMapping.csv" ;
+    kt:downloadUrl "https://zenodo.org/records/16807551/files/Kelmarsh_WT_dataSignalMapping.csv?download=1" ;
+    kt:fileName "Kelmarsh_WT_dataSignalMapping.csv" ;
+    kt:md5 "ca8fe399ab15ae7111d3214c632efd36" ;
+    kt:partOf kt:Dataset_Kelmarsh .
 

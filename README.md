@@ -102,8 +102,20 @@ The largest alert is T02 from 2022-10-04 19:50 to 2022-10-08 14:10 (mean
 residual −8.3 % of rated power, 13.3 MWh). Most alerts fall in October,
 just after the training period ends (see limitations).
 
-**Graph:** `ontology/kelmarsh.ttl` holds the schema (9 classes,
-28 properties), 6 turbines, 42 sensors, 6 trained power models and 9 alerts.
+**Graph:** `ontology/kelmarsh.ttl` holds the schema (11 classes,
+40 properties), 6 turbines, 42 sensors, 6 trained power models, 9 alerts, and
+the provenance of the data: the dataset and its 9 source files.
+
+## Dashboard
+
+- **Replay** tab: status map, KPI cards, 7-day power chart with alerts,
+  power curve, alerts table and the sensors SPARQL query.
+- **Ontology & lineage** tab: a Graphviz diagram of the selected turbine
+  traced back to its sources (specs → `Kelmarsh_WT_static.csv`; each sensor's
+  readings → its raw `Turbine_Data_…csv` → the SCADA zip → the Zenodo
+  dataset, and the signal mapping CSV), with a sensor filter and active
+  alerts in red, plus a class diagram of the schema. Both are built from
+  SPARQL queries shown in the tab.
 
 ## Known limitations
 
@@ -182,3 +194,11 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   cleaning or no data), red = inside an alert period (takes precedence).
 - `tests/test_app.py` runs the real app with Streamlit's `AppTest`; it is
   skipped when `data/processed/` has no Parquet files (run `make all` first).
+- Provenance extension (for the lineage tab): classes `kt:Dataset` and
+  `kt:SourceFile` (both `prov:Entity`), properties `prov:wasDerivedFrom`,
+  `kt:partOf`, `kt:fileName`, `kt:downloadUrl`, `kt:md5`, `kt:doi`,
+  `kt:publisher`, `kt:license`, `kt:modelFile`, and turbine specs
+  `kt:manufacturer`, `kt:turbineModel`, `kt:commissioningDate` from the static
+  CSV. Dataset metadata lives in `config.yaml` (`dataset`). Turbines derive
+  from the static CSV; sensors from their raw SCADA file and, where matched,
+  the mapping CSV; raw files are part of the zip, which is part of the dataset.
