@@ -17,7 +17,7 @@ downloads:
       url: https://zenodo.org/records/16807551/files/Kelmarsh_SCADA_2022_4457.zip?download=1
       md5: b695d2b21cd5a236b2e690e0a43df5ab
 signals:
-  # Fill in exact column names after running inspect_data.py
+  # Confirmed with inspect_data.py: identical in all 6 Turbine_Data files
   wind_speed: "Wind speed (m/s)"
   power: "Power (kW)"
   wind_direction: "Wind direction (°)"

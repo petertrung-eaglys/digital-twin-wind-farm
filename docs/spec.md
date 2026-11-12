@@ -372,3 +372,13 @@ Each target calls its script through uv, for example `uv run python -m src.downl
   `data/raw/scada_2022/` unless all members are already extracted.
 - Pure helpers (`md5_of`, `needs_download`, `ensure_file` with an injectable
   fetcher, `extract`) are covered by `tests/test_download.py` without network.
+
+### Milestone 3: `inspect_data.py`
+
+- Added `src/scada_format.py` (file classification and grouping, BOM/CRLF
+  safe `read_head`, `header_line_index`, `parse_columns`), shared with the
+  loader, and `src/inspect_data.py`, which prints the file groups, the first
+  15 raw lines, all 303 columns and the static/mapping CSV columns.
+- Findings: header is the commented line 10 (`# Date and time,…`) in all 6
+  turbine files; all 7 §6 signal names exist exactly, so `config.yaml` keeps
+  them, now marked as confirmed. Deviations recorded in the README.

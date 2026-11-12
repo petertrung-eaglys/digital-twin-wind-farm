@@ -48,3 +48,13 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   hard-coded in scripts.
 - `matplotlib` is added (not in spec §4) to save the power curve PNGs.
 - `pytest` and `ruff` are added as dev dependencies.
+- The SCADA archive holds 6 `Turbine_Data_Kelmarsh_<N>_…csv` files and
+  6 `Status_Kelmarsh_<N>_…csv` files (status/event logs, not used). In the
+  turbine files the column header is itself a comment line
+  (`# Date and time,…`) after 9 metadata lines, so the header is detected as
+  the last `#` line before the data. The files have 303 columns and CRLF line
+  endings; the static CSV has a UTF-8 BOM.
+- The 7 signal column names guessed in spec §6 were all confirmed exactly.
+- The mapping CSV's `Greenbyte Title` is the column name without the unit
+  suffix (e.g. `Ambient temperature (converter)`), so signals are matched to
+  it by stripping the unit.
