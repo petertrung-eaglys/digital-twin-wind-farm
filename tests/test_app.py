@@ -5,7 +5,7 @@ because data/ is not part of the repository.
 """
 
 import json
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -85,7 +85,7 @@ def test_ontology_tab_shows_lineage_and_schema_graphs() -> None:
         len(graphs),
         "digraph lineage" in graphs[0].proto.spec,
         "digraph schema" in graphs[1].proto.spec,
-    ) == (["Replay", "Ontology & lineage"], 2, True, True)
+    ) == (["Replay", "Overview", "Ontology & lineage"], 2, True, True)
 
 
 def test_sensor_filter_narrows_lineage() -> None:
@@ -102,4 +102,96 @@ def test_status_map_uses_configured_style() -> None:
 
     assert (
         status_map["layout"]["map"]["style"] == load_config()["dashboard"]["map_style"]
+    )
+
+
+def test_replay_opens_at_start_of_test_period() -> None:
+    app = run_app()
+
+    assert app.caption[0].value == "Replay time: 2022-01-01 00:00 UTC"
+
+
+def test_date_picker_moves_replay_and_keeps_time_of_day() -> None:
+    app = run_app()
+    app.session_state["replay_time"] = datetime(2022, 6, 1, 13, 20)
+    app.run()
+    app.date_input(key="replay_date").set_value(date(2023, 3, 1)).run()
+
+    assert (len(app.exception), app.caption[0].value) == (
+        0,
+        "Replay time: 2023-03-01 13:20 UTC",
+    )
+
+
+def test_speeds_include_a_day_and_a_week_per_tick() -> None:
+    app = run_app()
+
+    assert app.sidebar.radio[0].options[-2:] == ["1 day", "1 week"]
+
+
+def test_alerts_table_follows_replay_year_unless_unchecked() -> None:
+    app = run_app()
+    replay_year = len(app.dataframe[0].value)
+    app.sidebar.checkbox[0].uncheck().run()
+
+    assert (
+        app.subheader[1].value,
+        replay_year < len(app.dataframe[0].value),
+    ) == ("Alerts 2016–2024", True)
+
+
+def test_overview_tab_shows_heatmap_and_yearly_summary() -> None:
+    app = run_app()
+    charts = [json.loads(c.proto.spec) for c in app.get("plotly_chart")]
+    heatmap = next(c for c in charts if c["data"][0]["type"] == "heatmap")
+    yearly = next(d.value for d in app.dataframe if "Year" in d.value.columns)
+
+    assert (len(heatmap["data"][0]["y"]), yearly["Year"].tolist()) == (
+        6,
+        list(range(2016, 2025)),
+    )
+
+
+def test_badge_marks_training_or_test_period() -> None:
+    app = run_app()
+    test_badge = [m.value for m in app.markdown if "badge" in m.value]
+    app.session_state["replay_time"] = datetime(2019, 6, 1, 12, 0)
+    app.run()
+    training_badge = [m.value for m in app.markdown if "badge" in m.value]
+
+    assert (test_badge, training_badge) == (
+        [":blue-badge[Test period: expected power is out-of-sample]"],
+        [":gray-badge[Training period: expected power is in-sample]"],
+    )
+
+
+def test_power_chart_shades_training_days_across_the_split() -> None:
+    app = run_app()
+    app.session_state["replay_time"] = datetime(2022, 1, 3, 0, 0)
+    app.run()
+    chart = json.loads(app.get("plotly_chart")[1].proto.spec)
+
+    assert [a["text"] for a in chart["layout"]["annotations"]] == ["training period"]
+
+
+def test_current_point_is_drawn_on_top_of_the_power_curve() -> None:
+    app = run_app()
+    curve = json.loads(app.get("plotly_chart")[2].proto.spec)
+
+    assert [(t["type"], t["name"]) for t in curve["data"]] == [
+        ("scattergl", "Normal samples"),
+        ("scattergl", "Current"),
+    ]
+
+
+def test_heatmap_marks_split_between_training_and_test_months() -> None:
+    app = run_app()
+    charts = [json.loads(c.proto.spec) for c in app.get("plotly_chart")]
+    heatmap = next(c for c in charts if c["data"][0]["type"] == "heatmap")
+    months = heatmap["data"][0]["x"]
+    line = heatmap["layout"]["shapes"][0]
+
+    assert (months[int(line["x0"] + 0.5)], line["x0"] == line["x1"]) == (
+        "2022-01",
+        True,
     )

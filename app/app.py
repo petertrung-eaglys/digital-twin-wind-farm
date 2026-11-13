@@ -1,4 +1,4 @@
-"""Streamlit dashboard replaying the Kelmarsh digital twin over 2022.
+"""Streamlit dashboard replaying the Kelmarsh digital twin over 2016-2024.
 
 Structure (turbines, sensors, models, alerts) comes from the RDF graph;
 time series come from Parquet via DuckDB.
@@ -6,6 +6,8 @@ time series come from Parquet via DuckDB.
 
 import sys
 import time
+from datetime import datetime, timedelta
+from datetime import time as clock_time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -33,8 +35,10 @@ from src.graph_utils import (  # noqa: E402
 )
 from src.ontology_view import lineage_dot, schema_dot, without_sensors  # noqa: E402
 
-SPEEDS = [1, 6, 24]
+# Samples (10 minutes each) advanced per tick, by label
+SPEEDS = {"10 min": 1, "1 h": 6, "4 h": 24, "1 day": 144, "1 week": 1008}
 TICK_SECONDS = 0.5
+TRAINING_COLOUR = "#78909c"
 CHART_DAYS = 7
 ATTRIBUTION = (
     "Data: Kelmarsh wind farm data by Cubico Sustainable Investments Ltd, "
@@ -75,14 +79,39 @@ def read_series(parquet_paths: tuple[str, ...]) -> pd.DataFrame:
     return db.load_series(list(parquet_paths))
 
 
-def to_naive(ts: pd.Timestamp) -> object:
-    """UTC timestamp as a naive datetime for the slider."""
+@st.cache_data
+def read_overview(
+    ontology: str, parquet_paths: tuple[str, ...], interval_minutes: int
+) -> dict[str, pd.DataFrame]:
+    """Monthly residuals and yearly summary of all turbines (computed once)."""
+    structure = read_structure(ontology)
+    series = read_series(parquet_paths)
+    rated = structure["turbines"].set_index("turbine_id")["rated_power_kw"]
+    return {
+        "monthly": db.monthly_residuals(series, rated),
+        "yearly": db.yearly_summary(
+            series, structure["alerts"], rated, interval_minutes
+        ),
+    }
+
+
+def to_naive(ts: pd.Timestamp) -> datetime:
+    """UTC timestamp as a naive datetime for the widgets."""
     return ts.tz_convert("UTC").tz_localize(None).to_pydatetime()
 
 
 def set_playing(playing: bool) -> None:
     """Button callback: start or stop the replay."""
     st.session_state.playing = playing
+
+
+def set_replay_time(first: pd.Timestamp, last: pd.Timestamp) -> None:
+    """Date/clock callback: replay time from the picked date and time of day."""
+    state = st.session_state
+    picked = datetime.combine(state.replay_date, state.replay_clock)
+    st.session_state.replay_time = to_naive(
+        db.clamp(pd.Timestamp(picked, tz="UTC"), first, last)
+    )
 
 
 def status_map(
@@ -114,10 +143,25 @@ def status_map(
 
 
 def power_chart(
-    recent: pd.DataFrame, alerts: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp
+    recent: pd.DataFrame,
+    alerts: pd.DataFrame,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    train_end: str,
 ) -> go.Figure:
-    """Actual and expected power with alert periods shaded."""
+    """Actual and expected power, alert periods and training period shaded."""
     fig = go.Figure()
+    training = db.training_span(start, end, train_end)
+    if training is not None:
+        fig.add_vrect(
+            x0=training[0],
+            x1=training[1],
+            fillcolor=TRAINING_COLOUR,
+            opacity=0.15,
+            line_width=0,
+            annotation_text="training period",
+            annotation_position="top left",
+        )
     for column, name in [("power", "Actual"), ("expected_power", "Expected")]:
         fig.add_scatter(
             x=recent["timestamp"], y=recent[column], name=name, mode="lines"
@@ -134,14 +178,16 @@ def power_chart(
         height=330,
         margin={"l": 0, "r": 0, "t": 30, "b": 0},
         yaxis_title="Power (kW)",
-        title=f"Last {CHART_DAYS} days (alert periods shaded)",
+        title=f"Last {CHART_DAYS} days (alerts red, training period grey)",
     )
     return fig
 
 
-def power_curve(frame: pd.DataFrame, current: pd.Series | None) -> go.Figure:
-    """Power curve of normal rows with the current sample highlighted."""
-    normal = frame[frame["is_normal"]]
+def power_curve(
+    frame: pd.DataFrame, current: pd.Series | None, max_points: int, years: str
+) -> go.Figure:
+    """Power curve of (a sample of) normal rows, current sample highlighted."""
+    normal = db.sample_rows(frame[frame["is_normal"]], max_points)
     fig = go.Figure()
     fig.add_scattergl(
         x=normal["wind_speed"],
@@ -151,7 +197,9 @@ def power_curve(frame: pd.DataFrame, current: pd.Series | None) -> go.Figure:
         name="Normal samples",
     )
     if current is not None:
-        fig.add_scatter(
+        # WebGL traces are drawn above SVG ones, so the highlight must be WebGL
+        # too (and added last) to stay on top of the samples.
+        fig.add_scattergl(
             x=[current["wind_speed"]],
             y=[current["power"]],
             mode="markers",
@@ -163,7 +211,7 @@ def power_curve(frame: pd.DataFrame, current: pd.Series | None) -> go.Figure:
         margin={"l": 0, "r": 0, "t": 30, "b": 0},
         xaxis_title="Wind speed (m/s)",
         yaxis_title="Power (kW)",
-        title="Power curve",
+        title=f"Power curve {years} (up to {max_points:,} normal samples)",
     )
     return fig
 
@@ -173,6 +221,81 @@ def fmt(value: float | None, pattern: str) -> str:
     return "–" if value is None or pd.isna(value) else pattern.format(value)
 
 
+def years_label(years: tuple[int, int]) -> str:
+    """'2022' for a single year, '2016–2024' for a range."""
+    first, last = years
+    return str(first) if first == last else f"{first}–{last}"
+
+
+def residual_heatmap(monthly: pd.DataFrame, train_end: str) -> go.Figure:
+    """Monthly mean residual per turbine (red: underperformance), split train/test."""
+    fig = go.Figure(
+        go.Heatmap(
+            z=monthly.to_numpy(),
+            x=[str(month) for month in monthly.columns],
+            y=list(monthly.index),
+            colorscale="RdBu",
+            zmid=0,
+            colorbar={"title": "Residual", "tickformat": "+.0%"},
+            hovertemplate="%{y} %{x}: %{z:+.1%}<extra></extra>",
+        )
+    )
+    split = db.training_months(monthly.columns, train_end)
+    if 0 < split < len(monthly.columns):
+        # Categorical axis: month i sits at x = i, so the border is at split - 0.5
+        fig.add_vline(
+            x=split - 0.5,
+            line={"color": "black", "dash": "dash", "width": 2},
+            annotation_text="training ◀ ▶ test",
+            annotation_position="top",
+        )
+    fig.update_layout(
+        height=300,
+        margin={"l": 0, "r": 0, "t": 30, "b": 0},
+        title="Mean residual fraction of normal rows per month",
+    )
+    return fig
+
+
+def render_overview(
+    overview: dict[str, pd.DataFrame], turbine_id: str, train_end: str
+) -> None:
+    """The overview tab: monthly residuals of all turbines, yearly summary."""
+    st.plotly_chart(residual_heatmap(overview["monthly"], train_end), width="stretch")
+    st.caption(
+        "Residual = (actual - expected power) / rated power. Left of the "
+        f"dashed line (up to {train_end} UTC) the model saw the data in "
+        "training, so residuals there are in-sample and look better than "
+        "they would on unseen data."
+    )
+    st.subheader(f"Yearly summary of {turbine_id}")
+    yearly = overview["yearly"]
+    st.dataframe(
+        yearly[yearly["turbine_id"] == turbine_id]
+        .drop(columns="turbine_id")
+        .rename(
+            columns={
+                "year": "Year",
+                "energy_mwh": "Energy (MWh)",
+                "normal_share": "Normal share",
+                "mean_residual_fraction": "Mean residual fraction",
+                "alerts": "Alerts",
+                "alert_lost_mwh": "Lost energy in alerts (MWh)",
+            }
+        )
+        .round(
+            {
+                "Energy (MWh)": 0,
+                "Normal share": 3,
+                "Mean residual fraction": 3,
+                "Lost energy in alerts (MWh)": 1,
+            }
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+
+
 def render_replay(
     structure: dict[str, pd.DataFrame],
     frames: dict[str, pd.DataFrame],
@@ -180,11 +303,19 @@ def render_replay(
     statuses: dict[str, str],
     turbine_id: str,
     ts: pd.Timestamp,
-    map_style: str,
+    years: tuple[int, int],
+    train_end: str,
+    dashboard_config: dict,
 ) -> None:
-    """The replay tab: map, KPIs, charts, alerts and the sensors query."""
+    """The replay tab: map, KPIs, charts, alerts and the sensors query.
+
+    The power curve and the alerts table only cover the selected years.
+    """
     turbines, sensors = structure["turbines"], structure["sensors"]
-    st.plotly_chart(status_map(turbines, statuses, map_style), width="stretch")
+    st.plotly_chart(
+        status_map(turbines, statuses, dashboard_config["map_style"]),
+        width="stretch",
+    )
 
     turbine = turbines.set_index("turbine_id").loc[turbine_id]
     frame, turbine_alerts = frames[turbine_id], alerts_by[turbine_id]
@@ -192,6 +323,10 @@ def render_replay(
     values = db.kpis(current, turbine["rated_power_kw"])
     model = structure["models"].set_index("turbine_id").loc[turbine_id]
     st.subheader(f"{turbine['label']} ({turbine_id}): {statuses[turbine_id]}")
+    if db.in_training(ts, train_end):
+        st.badge("Training period: expected power is in-sample", color="gray")
+    else:
+        st.badge("Test period: expected power is out-of-sample", color="blue")
     cols = st.columns(4)
     cols[0].metric("Actual power", fmt(values["power"], "{:,.0f} kW"))
     cols[1].metric("Expected power", fmt(values["expected_power"], "{:,.0f} kW"))
@@ -204,16 +339,29 @@ def render_replay(
     )
 
     start = ts - pd.Timedelta(days=CHART_DAYS)
+    span = db.year_span(*years)
+    label = years_label(years)
     left, right = st.columns(2)
     left.plotly_chart(
-        power_chart(db.window(frame, ts, CHART_DAYS), turbine_alerts, start, ts),
+        power_chart(
+            db.window(frame, ts, CHART_DAYS), turbine_alerts, start, ts, train_end
+        ),
         width="stretch",
     )
-    right.plotly_chart(power_curve(frame, current), width="stretch")
+    right.plotly_chart(
+        power_curve(
+            db.rows_between(frame, *span),
+            current,
+            dashboard_config["power_curve_max_points"],
+            label,
+        ),
+        width="stretch",
+    )
 
-    st.subheader("Alerts")
+    st.subheader(f"Alerts {label}")
+    shown_alerts = db.alerts_overlapping(turbine_alerts, *span)
     st.dataframe(
-        turbine_alerts[["start", "end", "mean_residual_fraction", "lost_energy_mwh"]]
+        shown_alerts[["start", "end", "mean_residual_fraction", "lost_energy_mwh"]]
         .rename(
             columns={
                 "mean_residual_fraction": "Mean residual fraction",
@@ -277,30 +425,55 @@ def main() -> None:
     first, last = series["timestamp"].min(), series["timestamp"].max()
     interval = config["sampling"]["interval_minutes"]
 
+    train_end = config["train_test_split"]["train_end"]
+    start = db.replay_start(first, last, train_end, interval)
     st.session_state.setdefault("playing", False)
-    st.session_state.setdefault("replay_time", to_naive(first))
+    st.session_state.setdefault("replay_time", to_naive(start))
 
     st.sidebar.header("Replay")
     turbine_id = st.sidebar.selectbox("Turbine", turbines["turbine_id"])
-    speed = st.sidebar.radio("Speed (samples per tick)", SPEEDS, horizontal=True)
+    speed = st.sidebar.radio("Speed (per tick)", list(SPEEDS), horizontal=True)
     play_col, pause_col = st.sidebar.columns(2)
     play_col.button("▶ Play", on_click=set_playing, args=(True,), width="stretch")
     pause_col.button("⏸ Pause", on_click=set_playing, args=(False,), width="stretch")
     if st.session_state.playing:
         ts = pd.Timestamp(st.session_state.replay_time, tz="UTC")
-        nxt, keep = db.advance(ts, speed, interval, last)
+        nxt, keep = db.advance(ts, SPEEDS[speed], interval, last)
         st.session_state.replay_time = to_naive(nxt)
         st.session_state.playing = keep
+    # The date and clock widgets mirror replay_time, which playing advances
+    replay_time = st.session_state.replay_time
+    st.session_state.replay_date = replay_time.date()
+    st.session_state.replay_clock = replay_time.time()
+    st.sidebar.date_input(
+        "Replay date (UTC)",
+        min_value=to_naive(first).date(),
+        max_value=to_naive(last).date(),
+        key="replay_date",
+        on_change=set_replay_time,
+        args=(first, last),
+    )
     st.sidebar.slider(
-        "Replay time (UTC)",
-        min_value=to_naive(first),
-        max_value=to_naive(last),
+        "Time of day (UTC)",
+        min_value=clock_time(0, 0),
+        max_value=(datetime.min + timedelta(days=1, minutes=-interval)).time(),
         step=pd.Timedelta(minutes=interval).to_pytimedelta(),
-        format="YYYY-MM-DD HH:mm",
-        key="replay_time",
+        format="HH:mm",
+        key="replay_clock",
+        on_change=set_replay_time,
+        args=(first, last),
     )
     st.sidebar.caption("Playing" if st.session_state.playing else "Paused")
     ts = pd.Timestamp(st.session_state.replay_time, tz="UTC")
+
+    st.sidebar.header("Alerts & power curve")
+    all_years = (first.year, last.year)
+    if st.sidebar.checkbox("Replay year only", value=True):
+        years = (ts.year, ts.year)
+    else:
+        years = st.sidebar.select_slider(
+            "Years", options=list(range(first.year, last.year + 1)), value=all_years
+        )
 
     frames = {tid: f for tid, f in series.groupby("turbine_id")}
     alerts_by = {tid: alerts[alerts["turbine_id"] == tid] for tid in frames}
@@ -311,7 +484,9 @@ def main() -> None:
 
     st.title("Kelmarsh Wind Farm Digital Twin")
     st.caption(f"Replay time: {ts:%Y-%m-%d %H:%M} UTC")
-    replay_tab, ontology_tab = st.tabs(["Replay", "Ontology & lineage"])
+    replay_tab, overview_tab, ontology_tab = st.tabs(
+        ["Replay", "Overview", "Ontology & lineage"]
+    )
     with replay_tab:
         render_replay(
             structure,
@@ -320,7 +495,15 @@ def main() -> None:
             statuses,
             turbine_id,
             ts,
-            config["dashboard"]["map_style"],
+            years,
+            train_end,
+            config["dashboard"],
+        )
+    with overview_tab:
+        render_overview(
+            read_overview(config["paths"]["ontology"], paths, interval),
+            turbine_id,
+            train_end,
         )
     with ontology_tab:
         render_ontology(

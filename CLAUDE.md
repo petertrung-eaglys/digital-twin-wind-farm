@@ -8,7 +8,7 @@ The proof of concept is **implemented end to end** (spec §7.1–7.11 done, defi
 
 ## Project
 
-Proof-of-concept data-driven digital twin for the Kelmarsh wind farm (6x Senvion MM92 turbines), built around a Zenodo SCADA dataset (record 16807551, 2022 data). The PoC favours a complete end-to-end slice over accuracy or completeness.
+Proof-of-concept data-driven digital twin for the Kelmarsh wind farm (6x Senvion MM92 turbines), built around a Zenodo SCADA dataset (record 16807551, 2016–2024 data; originally 2022 only). The PoC favours a complete end-to-end slice over accuracy or completeness.
 
 ## Package management: uv only
 
@@ -31,7 +31,7 @@ make ontology   # build_ontology.py
 make train      # train.py
 make alerts     # alerts.py
 make app        # uv run streamlit run app/app.py
-make all        # download through alerts, end to end (~70 s once downloaded)
+make all        # download through alerts, end to end (~160 s once downloaded)
 make test       # uv run pytest
 make lint       # uv run ruff check .
 ```
@@ -42,20 +42,20 @@ Each script is also runnable standalone: `uv run python -m src.<name>`. Run a si
 
 The pipeline has a strict dependency order:
 
-1. `download.py` — fetch the files listed in `config.yaml` `downloads` into `data/raw/`, verify MD5, skip valid files, unzip the SCADA archive into `data/raw/scada_2022/`.
-2. `inspect_data.py` — prints raw file structure and column names. Run it before changing the loader or adding data; do not guess column names. The 7 signal names in `config.yaml` are confirmed for 2022.
-3. `load_scada.py` → `clean.py` — one Parquet per turbine in `data/processed/scada_<T0N>.parquet`, then `is_normal` and `air_density` added in place.
+1. `download.py` — fetch the files listed in `config.yaml` `downloads` into `data/raw/` (~3.7 GB), verify MD5, skip valid files, unzip each SCADA archive into its `extract_to` folder (`data/raw/scada_<year>/`, ~43 GB in total).
+2. `inspect_data.py` — prints raw file structure per year folder and the configured columns missing from each turbine file. Run it before changing the loader or adding data; do not guess column names. The 7 signal names in `config.yaml` are confirmed for all years 2016–2024.
+3. `load_scada.py` → `clean.py` — all yearly files of a turbine combined into one Parquet per turbine in `data/processed/scada_<T0N>.parquet` (rows of `config.years` only, duplicate timestamps resolved), then `is_normal` and `air_density` added in place.
 4. `build_ontology.py` — schema, provenance (dataset, source files), farm, turbines, components, sensors, and one `kt:PowerModel` per turbine declaring inputs/target from `config.yaml`. Overwrites `ontology/kelmarsh.ttl`, so `train` and `alerts` must run again after it.
 5. `train.py` — one LightGBM model per turbine; writes `expected_power` to Parquet, replaces the `kt:PowerModel` node (metrics, `prov:generatedAtTime`, model file), writes `models/metrics.json`.
 6. `alerts.py` — rolling-residual underperformance periods, written to the graph as `kt:Alert` (replacing the turbine's previous alerts).
-7. `app/app.py` — Streamlit dashboard with a "Replay" tab and an "Ontology & lineage" tab; reads structure from the graph and time series from Parquet via DuckDB.
+7. `app/app.py` — Streamlit dashboard with "Replay", "Overview" and "Ontology & lineage" tabs; reads structure from the graph and time series from Parquet via DuckDB.
 
 ## Module map
 
-- `src/config.py` — `load_config()`; `config.yaml` holds paths, downloads, dataset metadata, column names, model inputs/target, thresholds and `dashboard.map_style`. No hard-coded values in scripts.
-- `src/scada_format.py` — Greenbyte export layout: file classification, header detection, turbine ids (`T01`–`T06` from `Kelmarsh_<N>` in file names).
+- `src/config.py` — `load_config()`, plus `scada_archives()` / `scada_dirs()` (download entries with `extract_to` and their folders); `config.yaml` holds `years`, paths, downloads, dataset metadata, column names, model inputs/target, thresholds and `dashboard` settings. No hard-coded values in scripts.
+- `src/scada_format.py` — Greenbyte export layout: file discovery across year folders (`turbine_data_files`, `group_by_turbine`), file classification, header detection, turbine ids (`T01`–`T06` from `Kelmarsh_<N>` in file names).
 - `src/graph_utils.py` — the only module that talks to the graph (see below).
-- `src/dashboard.py` — pure helpers for the app (DuckDB loading, status, KPIs, windows, replay stepping, active alerts, map centre).
+- `src/dashboard.py` — pure helpers for the app (DuckDB loading, status, KPIs, windows, replay stepping, active alerts, map centre, power-curve sampling).
 - `src/ontology_view.py` — pure Graphviz DOT rendering of the lineage subgraph and the schema.
 - `app/app.py` — rendering only; logic lives in `src/dashboard.py` and `src/ontology_view.py` so it can be unit-tested.
 
@@ -67,7 +67,7 @@ The central design point (easy to miss without reading multiple files): **`ontol
 - Every other script (`train.py`, `alerts.py`, `app/app.py`) goes through `graph_utils.py` to discover turbines, sensor→Parquet-path mappings and model inputs — never `config.yaml` for this.
 - IRIs are deterministic (`kt:T01`, `kt:T01_power`, `kt:PowerModel_T01`, `kt:Alert_T01_001`, `kt:Source_<file>`), so re-running `train` or `alerts` replaces nodes instead of duplicating them.
 - Raw time-series values live in per-turbine Parquet files; the graph stores only metadata and relationships, with `kt:storedIn` pointing at the Parquet path and `kt:scadaColumn`/`kt:signalKey` bridging back to the SCADA column names.
-- Provenance: turbines `prov:wasDerivedFrom` the static CSV; sensors `prov:wasDerivedFrom` their raw SCADA file and, where matched, the mapping CSV; raw files are `kt:partOf` the zip, which is `kt:partOf` the `kt:Dataset`. The lineage tab renders this.
+- Provenance: turbines `prov:wasDerivedFrom` the static CSV; sensors `prov:wasDerivedFrom` all their yearly raw SCADA files and, where matched, the mapping CSV; each raw file is `kt:partOf` its year's zip (looked up from the folder via `extract_to`), which is `kt:partOf` the `kt:Dataset`. The lineage tab renders this.
 - `air_density` and the sin/cos of wind direction are derived features, not sensors; the model's sensor inputs are `wind_speed`, `wind_direction`, `ambient_temp`.
 
 ## Testing
@@ -85,6 +85,10 @@ The central design point (easy to miss without reading multiple files): **`ontol
 - plotly 7 `px.scatter_map` does not centre on the data; pass `center=dashboard.map_center(...)`.
 - Streamlit `AppTest` cannot drive a datetime slider; set `app.session_state["replay_time"]` instead. Avoid clicking Play in `AppTest` (the `st.rerun` loop runs until timeout).
 - `ontology/kelmarsh.ttl` is committed and changes on every `make train` (new `prov:generatedAtTime`); only commit it when its structure changed.
+- The 2023 and 2024 SCADA exports (~2.9 GB per turbine file) repeat the year from 1 January many times (~2.17M rows for 52,560 timestamps); repeats are exact or all-NaN copies, and a NaN copy can come first. `load_scada.tidy` keeps the most complete row per timestamp — never switch it back to a plain "keep first".
+- Column count differs per year (299 / 303 / 312); only the configured columns are read.
+- No row before commissioning (15 April 2016) is `is_normal`, so the commissioning period never reaches training.
+- The dashboard power curve samples at most `dashboard.power_curve_max_points` normal rows; with 9 years there are ~370k per turbine.
 
 ## Project-specific rules (from spec §8)
 
@@ -93,6 +97,6 @@ The central design point (easy to miss without reading multiple files): **`ontol
 - Never commit anything under `data/` or `models/` (`.gitignore` covers both).
 - Log every change in the `docs/spec.md` §11 change log; commits follow the 50/70 message format, one commit per request.
 
-## Future work: multi-year data (not started)
+## Multi-year data (2016–2024)
 
-The pipeline currently handles **one year (2022) only**. Extending to the 2016–2024 SCADA archives is planned; the full plan (file names, MD5s, single-year assumptions in the code, planned changes, open decisions) is in `docs/spec.md` §10.1. Read it before touching years, downloads or `load_scada.py`. In particular: `load_scada.py` writes one Parquet per raw file, so putting several years' files for a turbine in one folder would silently overwrite data, and `download.py` only unzips the first archive.
+Implemented per `docs/spec.md` §10.1 (change log: "Feature: multi-year SCADA data"). Years are selected with `config.yaml` `years`; each SCADA zip in `downloads.files` has its own `extract_to` folder. Train on 2016–2021, test on 2022–2024 (`train_test_split.train_end`). To add a year: add its zip entry (name, URL, MD5, `extract_to`), add it to `years`, run `make inspect` to confirm the columns, then `make all`.

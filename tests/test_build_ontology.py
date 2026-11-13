@@ -1,7 +1,6 @@
 """Tests for the ontology builder, checked through SPARQL helpers."""
 
 from datetime import date
-from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -11,7 +10,6 @@ from src.build_ontology import (
     add_schema,
     mapping_entry,
     strip_unit,
-    turbine_files_in,
     turbine_id_from_title,
     turbines_from_static,
 )
@@ -181,8 +179,16 @@ def test_turbine_has_machine_specs_from_static(graph: Graph) -> None:
     ) == ("Senvion", "MM92", date(2016, 4, 15))
 
 
-def test_turbine_files_in_maps_ids_to_file_names(tmp_path: Path) -> None:
-    for name in ("Turbine_Data_Kelmarsh_2_x.csv", "Status_Kelmarsh_2_x.csv"):
-        (tmp_path / name).write_text("")
+def test_sensor_readings_traced_to_raw_files_of_every_year(graph: Graph) -> None:
+    raw_files = {
+        source_iri("Turbine_Data_Kelmarsh_1_2021-01-01_-_2022-01-01_228.csv"),
+        source_iri("Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228.csv"),
+    }
 
-    assert turbine_files_in(tmp_path) == {"T02": "Turbine_Data_Kelmarsh_2_x.csv"}
+    assert raw_files <= set(graph.objects(sensor("T01", "power"), PROV.wasDerivedFrom))
+
+
+def test_raw_file_is_part_of_its_own_year_archive(graph: Graph) -> None:
+    raw = source_iri("Turbine_Data_Kelmarsh_1_2021-01-01_-_2022-01-01_228.csv")
+
+    assert graph.value(raw, KT.partOf) == source_iri("Kelmarsh_SCADA_2021_4456.zip")

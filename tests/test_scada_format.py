@@ -7,10 +7,12 @@ import pytest
 from src.scada_format import (
     classify_file,
     format_turbine_id,
+    group_by_turbine,
     group_files,
     header_line_index,
     parse_columns,
     read_head,
+    turbine_data_files,
     turbine_id_from_filename,
 )
 
@@ -91,3 +93,38 @@ def test_turbine_id_from_filename() -> None:
 def test_turbine_id_from_filename_rejects_unknown_name() -> None:
     with pytest.raises(ValueError, match="No turbine number"):
         turbine_id_from_filename("readme.csv")
+
+
+def make_files(folder: Path, names: list[str]) -> list[Path]:
+    folder.mkdir()
+    for name in names:
+        (folder / name).write_text("")
+    return [folder / n for n in names]
+
+
+def test_turbine_data_files_keeps_folder_order_and_skips_status(
+    tmp_path: Path,
+) -> None:
+    late = make_files(tmp_path / "scada_2022", ["Turbine_Data_Kelmarsh_1_b.csv"])
+    early = make_files(
+        tmp_path / "scada_2021",
+        ["Turbine_Data_Kelmarsh_1_a.csv", "Status_Kelmarsh_1_a.csv"],
+    )
+
+    assert turbine_data_files([early[0].parent, late[0].parent]) == [
+        early[0],
+        late[0],
+    ]
+
+
+def test_group_by_turbine_keeps_file_order_per_turbine() -> None:
+    paths = [
+        Path("2021/Turbine_Data_Kelmarsh_2_a.csv"),
+        Path("2021/Turbine_Data_Kelmarsh_1_a.csv"),
+        Path("2022/Turbine_Data_Kelmarsh_1_b.csv"),
+    ]
+
+    assert group_by_turbine(paths) == {
+        "T01": [paths[1], paths[2]],
+        "T02": [paths[0]],
+    }

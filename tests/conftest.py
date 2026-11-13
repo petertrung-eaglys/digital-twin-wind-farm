@@ -1,5 +1,7 @@
 """Shared fixtures: a small synthetic Kelmarsh graph."""
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 from rdflib import Graph
@@ -15,15 +17,18 @@ SIGNALS = {
     "pitch": "Blade angle (pitch position) A (°)",
     "rotor_speed": "Rotor speed (RPM)",
 }
+ARCHIVES = {
+    "scada_2021": "Kelmarsh_SCADA_2021_4456.zip",
+    "scada_2022": "Kelmarsh_SCADA_2022_4457.zip",
+}
 DOWNLOADS = {
-    "scada_dir": "scada_2022",
     "files": [
         {"name": n, "url": f"https://zenodo.org/{n}", "md5": "0" * 32}
-        for n in (
-            "Kelmarsh_WT_static.csv",
-            "Kelmarsh_WT_dataSignalMapping.csv",
-            "Kelmarsh_SCADA_2022_4457.zip",
-        )
+        for n in ("Kelmarsh_WT_static.csv", "Kelmarsh_WT_dataSignalMapping.csv")
+    ]
+    + [
+        {"name": n, "url": f"https://zenodo.org/{n}", "md5": "0" * 32, "extract_to": d}
+        for d, n in ARCHIVES.items()
     ],
 }
 DATASET = {
@@ -32,12 +37,19 @@ DATASET = {
     "publisher": "Cubico Sustainable Investments Ltd",
     "license": "CC-BY-4.0",
 }
+# T01 has two years of raw files, T02 one.
+RAW = Path("data/raw")
 TURBINE_FILES = {
-    "T01": "Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228.csv",
-    "T02": "Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229.csv",
+    "T01": [
+        RAW / "scada_2021" / "Turbine_Data_Kelmarsh_1_2021-01-01_-_2022-01-01_228.csv",
+        RAW / "scada_2022" / "Turbine_Data_Kelmarsh_1_2022-01-01_-_2023-01-01_228.csv",
+    ],
+    "T02": [
+        RAW / "scada_2022" / "Turbine_Data_Kelmarsh_2_2022-01-01_-_2023-01-01_229.csv",
+    ],
 }
 CONFIG = {
-    "paths": {"processed": "data/processed"},
+    "paths": {"raw": str(RAW), "processed": "data/processed"},
     "dataset": DATASET,
     "downloads": DOWNLOADS,
     "signals": SIGNALS,

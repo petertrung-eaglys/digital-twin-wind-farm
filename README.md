@@ -1,7 +1,7 @@
 # Kelmarsh Wind Farm Digital Twin (PoC)
 
 A proof of concept of a data-driven digital twin for the Kelmarsh wind
-farm (UK, 6 x Senvion MM92, 12.3 MW). It loads and cleans 2022 SCADA data,
+farm (UK, 6 x Senvion MM92, 12.3 MW). It loads and cleans 2016–2024 SCADA data,
 describes the farm in an RDF ontology, trains one LightGBM power model per
 turbine, raises underperformance alerts, and replays everything in a Streamlit
 dashboard. See [docs/spec.md](docs/spec.md) for the full specification.
@@ -15,7 +15,7 @@ and model inputs through SPARQL (`src/graph_utils.py`) and writes its results
 
 ```mermaid
 flowchart LR
-    Z[(Zenodo<br/>16807551)] -->|download| R[data/raw<br/>CSV + SCADA zip]
+    Z[(Zenodo<br/>16807551)] -->|download| R[data/raw<br/>CSV + 9 SCADA zips]
     R -->|inspect_data| C[config.yaml<br/>signal names]
     R -->|load_scada| P[(data/processed<br/>scada_T0N.parquet)]
     C -.-> P
@@ -44,6 +44,10 @@ make setup        # uv sync
 
 ## Run
 
+The download is about 3.7 GB (9 yearly SCADA zips) and unzips to about
+43 GB in `data/raw/scada_<year>/`; the 2023 and 2024 exports alone are 17 GB
+each (see deviations). The processed Parquet files are much smaller.
+
 ```bash
 make download     # fetch raw data into data/raw/ (MD5-verified, skips existing)
 make inspect      # print raw file structure and column names
@@ -66,69 +70,99 @@ make lint         # uv run ruff check .
 
 ## Results
 
-From a clean clone, `uv sync` then `make all` runs in about 70 seconds once
-the data is downloaded.
+From a clean clone, `uv sync` then `make all` runs in about 160 seconds once
+the data is downloaded; about 140 s of that is `load_scada` parsing the raw
+CSVs (mostly the 2023 and 2024 files), every later step takes under 10 s.
 
-**Data and cleaning:** each turbine has 52,560 ten-minute rows (the full year,
-no gaps) with 0.1–1.1 % missing values per signal; 74–81 % of rows are normal.
+**Data and cleaning:** each turbine has 473,184 ten-minute rows over
+2016–2024 (2.84 million in total): 52,560 per year, 52,704 in the leap years
+2020 and 2024, and 52,416 in 2016, whose files start on 3 January. Missing
+values are 1.6–2.5 % for wind speed and power and 4.6–5.9 % for the other
+signals; 75–80 % of rows are normal. No row before the commercial operations
+date (15 April 2016) is normal, so the commissioning period is excluded
+from training by the cleaning rules.
 
-**Power models** (`models/metrics.json`, test set = normal rows in Q4 2022,
-rated power 2,050 kW):
+**Power models** (`models/metrics.json`, trained on normal rows of
+2016–2021, tested on normal rows of 2022–2024, rated power 2,050 kW):
 
 | Turbine | MAE (kW) | nMAE | Train rows | Test rows |
 |---|---|---|---|---|
-| T01 | 71.6 | 0.035 | 30,907 | 10,836 |
-| T02 | 80.3 | 0.039 | 32,522 | 9,890 |
-| T03 | 62.1 | 0.030 | 31,753 | 10,664 |
-| T04 | 63.0 | 0.031 | 28,197 | 10,731 |
-| T05 | 71.1 | 0.035 | 31,886 | 10,564 |
-| T06 | 53.7 | 0.026 | 29,084 | 10,585 |
+| T01 | 50.7 | 0.025 | 241,807 | 129,779 |
+| T02 | 52.9 | 0.026 | 247,003 | 131,722 |
+| T03 | 48.7 | 0.024 | 241,497 | 128,971 |
+| T04 | 56.7 | 0.028 | 247,502 | 120,537 |
+| T05 | 51.6 | 0.025 | 239,946 | 126,404 |
+| T06 | 47.3 | 0.023 | 233,463 | 121,920 |
 
-All turbines meet the nMAE < 0.05 target.
+All turbines meet the nMAE < 0.05 target, and every turbine improves on the
+2022-only models (nMAE 0.026–0.039 on Q4 2022) despite a three-year test
+period.
 
 **Alerts** (24 h rolling residual below −5 % of rated power for at least 6 h):
 
 | Turbine | Alerts | Lost energy (MWh) |
 |---|---|---|
-| T01 | 3 | 3.0 |
-| T02 | 3 | 19.2 |
+| T01 | 2 | 2.5 |
+| T02 | 8 | 26.1 |
 | T03 | 0 | 0.0 |
-| T04 | 2 | 5.2 |
-| T05 | 0 | 0.0 |
-| T06 | 1 | 0.6 |
-| **Total** | **9** | **28.1** |
+| T04 | 11 | 78.8 |
+| T05 | 4 | 3.0 |
+| T06 | 2 | 0.9 |
+| **Total** | **27** | **111.3** |
 
-The largest alert is T02 from 2022-10-04 19:50 to 2022-10-08 14:10 (mean
-residual −8.3 % of rated power, 13.3 MWh). Most alerts fall in October,
-just after the training period ends (see limitations).
+By year: 1 alert in 2016, 12 in 2022, 12 in 2023 and 2 in 2024. The
+clearest finding is T04 from February to April 2023: seven alerts totalling
+59.1 MWh, including the largest one, from 2023-03-21 12:20 to 2023-03-26 19:50
+(mean residual −16.7 % of rated power, 20.9 MWh). The October 2022 cluster
+seen with the 2022-only models is still there (T02 from 2022-10-04 19:20 to
+2022-10-08 14:20, 13.3 MWh), so it is not just seasonal drift of a model
+trained on January–September.
 
 **Graph:** `ontology/kelmarsh.ttl` holds the schema (11 classes,
-40 properties), 6 turbines, 42 sensors, 6 trained power models, 9 alerts, and
-the provenance of the data: the dataset and its 9 source files.
+40 properties), 6 turbines, 42 sensors, 6 trained power models, 27 alerts,
+and the provenance of the data: the dataset and its 65 source files (2 CSVs,
+9 SCADA zips and 54 yearly turbine data files). Each sensor is derived from
+its turbine's 9 yearly raw files.
 
 ## Dashboard
 
-- **Replay** tab: status map, KPI cards, 7-day power chart with alerts,
-  power curve, alerts table and the sensors SPARQL query.
+- **Sidebar**: turbine, replay date picker plus time-of-day slider (the
+  replay opens at 2022-01-01, the start of the test period), speed from
+  10 minutes to 1 week per tick, and the years shown in the power curve and
+  alerts table (the replay year by default, or a chosen range).
+- **Replay** tab: status map, KPI cards with a training/test period badge,
+  7-day power chart with alerts (red) and training period (grey),
+  power curve (a random sample of at most 50,000 normal rows,
+  `dashboard.power_curve_max_points`), alerts table and the sensors SPARQL
+  query.
+- **Overview** tab: heatmap of the monthly mean residual fraction of all
+  turbines over 2016–2024, and a yearly summary of the selected turbine
+  (energy, normal share, mean residual, alerts and lost energy). A dashed
+  line separates the training months (in-sample residuals) from the test
+  months.
 - **Ontology & lineage** tab: a Graphviz diagram of the selected turbine
   traced back to its sources (specs → `Kelmarsh_WT_static.csv`; each sensor's
-  readings → its raw `Turbine_Data_…csv` → the SCADA zip → the Zenodo
+  readings → its 9 yearly raw `Turbine_Data_…csv` files → each year's SCADA
+  zip → the Zenodo
   dataset, and the signal mapping CSV), with a sensor filter and active
   alerts in red, plus a class diagram of the schema. Both are built from
   SPARQL queries shown in the tab.
 
 ## Known limitations
 
-- One year (2022) only.
 - Simple cleaning rules (spec §7.4): a derating plateau at about 1,650 kW above
   rated wind speed is not removed, because the pitch rule only applies below
   rated wind speed.
 - No validation of alerts against the status/event logs.
-- The models are trained on January–September and tested on October–December
-  only; alerts clustered in early October may partly reflect seasonal model
-  drift rather than real underperformance.
+- Alerts are computed on all years, including the training years
+  2016–2021, where the residuals are in-sample and therefore small; only
+  one alert falls there (T01, August 2016). Alerts in 2022–2024 are
+  out-of-sample.
+- One model per turbine is trained once on 2016–2021; slow changes after
+  2021 (e.g. ageing, control updates) show up as residuals rather than being
+  learned.
 - Replay is a historical simulation (no streaming), and the dashboard loads
-  the whole year of the 6 turbines into memory (about 315,000 rows).
+  all 9 years of the 6 turbines into memory (about 2.84 million rows).
 
 ## Attribution
 
@@ -147,8 +181,30 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   6 `Status_Kelmarsh_<N>_…csv` files (status/event logs, not used). In the
   turbine files the column header is itself a comment line
   (`# Date and time,…`) after 9 metadata lines, so the header is detected as
-  the last `#` line before the data. The files have 303 columns and CRLF line
-  endings; the static CSV has a UTF-8 BOM.
+  the last `#` line before the data. The files have CRLF line endings; the
+  static CSV has a UTF-8 BOM.
+- Multi-year data (2016–2024): every yearly archive has the same layout
+  (6 turbine data and 6 status files at the zip root, header on line 10) and
+  all 54 turbine data files contain the 7 configured signals (checked by
+  `make inspect`). The column count grows over time: 299 (2016–2020),
+  303 (2021–2022), 312 (2023–2024); the extra columns are not used.
+- The 2023 and 2024 exports (about 2.9 GB per turbine file, against 210 MB
+  for 2022) repeat the year from 1 January over and over in ever longer
+  blocks: about 2.17 million rows per file for 52,560 timestamps. Every
+  repeated row is either an exact copy or an all-NaN copy of the real row,
+  and the NaN copy sometimes comes first. `load_scada.py` therefore keeps,
+  for each timestamp, the row with the most non-missing signals (ties keep
+  the first row in file order, so at a year boundary the earlier year's
+  file wins), instead of simply the first row.
+- `config.yaml`: `year` became `years` (2016–2024); the single
+  `downloads.scada_dir` was replaced by an `extract_to` folder on each SCADA
+  archive entry (`scada_<year>`), which also marks an entry as a SCADA
+  archive (`config.scada_archives`, `config.scada_dirs`).
+- The train/test split is `train_end: 2021-12-31 23:50` (train 2016–2021,
+  test 2022–2024), as proposed in spec §10.1.
+- `load_scada.py` prints rows per year in addition to the row count and
+  missing percentages; `inspect_data.py` inspects every year folder and lists
+  the configured columns missing from each turbine data file.
 - The 7 signal column names guessed in spec §6 were all confirmed exactly.
 - The mapping CSV's `Greenbyte Title` is the column name without the unit
   suffix (e.g. `Ambient temperature (converter)`), so signals are matched to
@@ -200,9 +256,14 @@ CC-BY-4.0. DOI: [10.5281/zenodo.16807551](https://doi.org/10.5281/zenodo.1680755
   `kt:publisher`, `kt:license`, `kt:modelFile`, and turbine specs
   `kt:manufacturer`, `kt:turbineModel`, `kt:commissioningDate` from the static
   CSV. Dataset metadata lives in `config.yaml` (`dataset`). Turbines derive
-  from the static CSV; sensors from their raw SCADA file and, where matched,
-  the mapping CSV; raw files are part of the zip, which is part of the dataset.
+  from the static CSV; sensors from all their raw SCADA files (one per year)
+  and, where matched, the mapping CSV; each raw file is part of its year's
+  zip, which is part of the dataset.
 - The status map uses satellite imagery (`dashboard.map_style: satellite` in
   `config.yaml`): plotly's built-in style backed by Esri World Imagery, which
   needs no API token; the imagery attribution is shown on the map. Set it to
   `carto-positron` or `open-street-map` for a street map.
+- The dashboard power curve draws a reproducible random sample of at most
+  `dashboard.power_curve_max_points` (50,000) normal rows: with all years a
+  turbine has about 370,000 normal rows, too many to resend to the browser
+  on every replay tick.
