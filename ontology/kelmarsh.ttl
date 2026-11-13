@@ -312,8 +312,8 @@ kt:Alert_T01_001 a kt:Alert ;
     rdfs:label "Alert 1 T01" ;
     kt:concerns kt:T01 ;
     kt:endTime "2016-08-04T15:40:00+00:00"^^xsd:dateTime ;
-    kt:lostEnergyMWh 2.110354520220263 ;
-    kt:meanResidualFraction -0.04575294352781059 ;
+    kt:lostEnergyMWh 2.1103545202202514 ;
+    kt:meanResidualFraction -0.04575294352781034 ;
     kt:raisedBy kt:PowerModel_T01 ;
     kt:startTime "2016-08-03T17:00:00+00:00"^^xsd:dateTime .
 
@@ -321,8 +321,8 @@ kt:Alert_T01_002 a kt:Alert ;
     rdfs:label "Alert 2 T01" ;
     kt:concerns kt:T01 ;
     kt:endTime "2022-10-06T04:50:00+00:00"^^xsd:dateTime ;
-    kt:lostEnergyMWh 0.3567533308838503 ;
-    kt:meanResidualFraction -0.010991116740965862 ;
+    kt:lostEnergyMWh 0.3567533308838451 ;
+    kt:meanResidualFraction -0.0109911167409657 ;
     kt:raisedBy kt:PowerModel_T01 ;
     kt:startTime "2022-10-05T11:00:00+00:00"^^xsd:dateTime .
 
@@ -330,7 +330,7 @@ kt:Alert_T02_001 a kt:Alert ;
     rdfs:label "Alert 1 T02" ;
     kt:concerns kt:T02 ;
     kt:endTime "2022-07-21T07:40:00+00:00"^^xsd:dateTime ;
-    kt:lostEnergyMWh 0.39803318923770586 ;
+    kt:lostEnergyMWh 0.3980331892377058 ;
     kt:meanResidualFraction -0.027092446232855758 ;
     kt:raisedBy kt:PowerModel_T02 ;
     kt:startTime "2022-07-21T00:40:00+00:00"^^xsd:dateTime .
@@ -384,7 +384,7 @@ kt:Alert_T02_007 a kt:Alert ;
     rdfs:label "Alert 7 T02" ;
     kt:concerns kt:T02 ;
     kt:endTime "2022-10-13T08:30:00+00:00"^^xsd:dateTime ;
-    kt:lostEnergyMWh 5.486827903124814 ;
+    kt:lostEnergyMWh 5.486827903124813 ;
     kt:meanResidualFraction -0.05735360177482385 ;
     kt:raisedBy kt:PowerModel_T02 ;
     kt:startTime "2022-10-10T23:20:00+00:00"^^xsd:dateTime .
@@ -563,7 +563,7 @@ kt:Kelmarsh a kt:WindFarm ;
 kt:PowerModel_T03 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T03" ;
-    prov:generatedAtTime "2026-11-12T07:13:22.805284+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T07:55:41.297563+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T03 ;
     kt:maeKW 48.66308387025836 ;
     kt:modelFile "models/power_T03.txt" ;
@@ -954,11 +954,11 @@ kt:T06_rotor_speed a sosa:Sensor ;
 kt:PowerModel_T01 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T01" ;
-    prov:generatedAtTime "2026-11-12T07:13:20.889572+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T07:55:39.401476+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T01 ;
-    kt:maeKW 50.66398565755283 ;
+    kt:maeKW 50.66398565755288 ;
     kt:modelFile "models/power_T01.txt" ;
-    kt:nmae 0.024714139345147722 ;
+    kt:nmae 0.024714139345147747 ;
     kt:target kt:T01_power ;
     kt:usesInput kt:T01_ambient_temp,
         kt:T01_wind_direction,
@@ -967,7 +967,7 @@ kt:PowerModel_T01 a prov:Entity,
 kt:PowerModel_T06 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T06" ;
-    prov:generatedAtTime "2026-11-12T07:13:25.594805+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T07:55:44.096625+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T06 ;
     kt:maeKW 47.26220510766427 ;
     kt:modelFile "models/power_T06.txt" ;
@@ -1543,7 +1543,7 @@ kt:T06_Rotor a kt:Rotor ;
 kt:PowerModel_T05 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T05" ;
-    prov:generatedAtTime "2026-11-12T07:13:24.697235+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T07:55:43.144820+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T05 ;
     kt:maeKW 51.556745926356754 ;
     kt:modelFile "models/power_T05.txt" ;
@@ -2068,7 +2068,7 @@ kt:Source_Turbine_Data_Kelmarsh_6_2024-01-01_-_2025-01-01_233_csv a prov:Entity,
 kt:PowerModel_T02 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T02" ;
-    prov:generatedAtTime "2026-11-12T07:13:21.839501+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T07:55:40.328699+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T02 ;
     kt:maeKW 52.92394089135199 ;
     kt:modelFile "models/power_T02.txt" ;
@@ -2111,7 +2111,7 @@ kt:Dataset_Kelmarsh a prov:Entity,
 kt:PowerModel_T04 a prov:Entity,
         kt:PowerModel ;
     rdfs:label "Power model T04" ;
-    prov:generatedAtTime "2026-11-12T07:13:23.750950+00:00"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-11-12T07:55:42.227904+00:00"^^xsd:dateTime ;
     kt:forTurbine kt:T04 ;
     kt:maeKW 56.65835643996463 ;
     kt:modelFile "models/power_T04.txt" ;
